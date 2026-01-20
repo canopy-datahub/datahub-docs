@@ -1,4 +1,4 @@
-# DataHub AWS Deployment Guide
+# Redwood Platform AWS Deployment Guide
 
 ## 📋 Quick Navigation
 

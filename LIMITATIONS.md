@@ -97,7 +97,7 @@ An enhancement is to support more flexible data dictionary ingestion, including 
 
 Several content types are stored in the database and can be managed without code changes. However, they still require direct database access to modify.
 
-For detailed information about the relevant database tables and their structure, see the [database schema creation scripts](../datahub-development/db/postgres/db-create-scripts/02_create_base_db.sql).
+For detailed information about the relevant database tables and their structure, see the [database schema creation scripts](https://github.com/bmir-datahub/datahub-development/blob/feature/aws/db/postgres/db-create-scripts/02_create_base_db.sql).
 
 ### Funding Opportunities
 
@@ -259,8 +259,8 @@ INSERT INTO public.newsletter (
 ### Other Prepopulated Data
 
 Lookup tables (`lkup_*`) are prepopulated by the database seed scripts in `/datahub-development/db/postgres/db-create-scripts/`:
-- `03_populate_base_tables.sql` - Base reference data used by the platform
-- `04_populate_variable_tables.sql` - Variable-related reference data derived from the Global Codebook
+- [`03_populate_base_tables.sql`](https://github.com/bmir-datahub/datahub-development/blob/feature/aws/db/postgres/db-create-scripts/03_populate_base_tables.sql) - Base reference data used by the platform
+- [`04_populate_variable_tables.sql`](https://github.com/bmir-datahub/datahub-development/blob/feature/aws/db/postgres/db-create-scripts/04_populate_variable_tables.sql) - Variable-related reference data derived from the Global Codebook
 
 These values are not managed through the UI. To add or update lookup values, you must edit the seed scripts and reapply them in the target environment.
 
