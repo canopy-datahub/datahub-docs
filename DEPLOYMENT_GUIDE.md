@@ -727,12 +727,12 @@ aws cloudformation deploy \
 ```
 
 **What's created:**
-- Lambda function: `DataHub-OpenSearchRefresh-{ENV}`
+- Lambda function: `DataHub-OpenSearchRefresh`
   - Runtime: Python 3.11 on ARM64
   - VPC: Deployed in private subnets
   - Attached layer from Step 14a
   - Code from S3 (Step 14b)
-- Lambda function: `DataHub-EmailService-{ENV}`
+- Lambda function: `DataHub-EmailService`
   - Runtime: Java 17
   - Code from S3
 - IAM roles and permissions
