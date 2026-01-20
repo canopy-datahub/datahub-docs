@@ -1,6 +1,6 @@
 # Platform Limitations and Considerations
 
-This document outlines current limitations for the Redwood platform that administrators and developers should be aware of when deploying and customizing the platform.
+This document outlines current limitations administrators and developers should consider when deploying and customizing the Redwood platform.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -23,28 +23,28 @@ This document outlines current limitations for the Redwood platform that adminis
 
 ## Overview
 
-This document summarizes the platform limitations that affect configuration, data and metadata validation, and content updates in Redwood. It clarifies which changes can be made through existing interfaces or database updates, and which require code changes or updates to seed scripts. Use this guide to scope effort, plan data onboarding, and understand current constraints before deployment or customization.
+This document summarizes platform limitations that affect configuration, data and metadata validation, and content updates in Redwood. It clarifies which changes can be made through existing interfaces or database updates, and which require code changes or updates to seed scripts. Use this guide to scope effort, plan data onboarding, and understand current constraints before deployment or customization.
 
 
 ## Metadata and Data Validation Limitations
 
-### Study Metadata 
+### Study Metadata
 
-The study metadata template is currently **pre-defined and fixed** within the Redwood platform. During study registration, users are required to complete this standardized form to provide the required study metadata.
+The study metadata template is currently **predefined and fixed** within the Redwood platform. During study registration, users are required to complete this standardized form to provide the required study metadata.
 
 Some metadata fields rely on **controlled terms** (for example, enumerated values). While this approach promotes consistency and interoperability across studies, it may **not fully support all project-specific or domain-specific use cases**. In some cases, the available controlled terms may be too restrictive or not sufficiently expressive.
 
 At this time, users **cannot customize the study registration form** or modify the controlled-term lists. This limits flexibility for teams that require additional metadata fields, alternative terminologies, or different metadata structures.
 
 **Future Work**  
-A enhancement is to allow users to **define and manage their own study registration forms**, including:
+An enhancement is to allow users to **define and manage their own study registration forms**, including:
 - Adding or removing metadata fields  
 - Customizing controlled vocabularies   
 
-Until these features are available, users are encouraged to review the predefined [study metadata template](https://openview.metadatacenter.org/templates/https:%2F%2Frepo.metadatacenter.org%2Ftemplates%2F9ade43b0-ea0c-499d-ac65-4b624a3b9db4) to ensure it aligns with their essential requirements before using the platform. 
+Until these features are available, users are encouraged to review the predefined [study metadata template](https://openview.metadatacenter.org/templates/https:%2F%2Frepo.metadatacenter.org%2Ftemplates%2F9ade43b0-ea0c-499d-ac65-4b624a3b9db4) to ensure it aligns with their essential requirements before using the platform.
 
 ---
-### Data File Metadata 
+### Data File Metadata
 Similar to study metadata, [the data file metadata template](https://openview.metadatacenter.org/templates/https:%2F%2Frepo.metadatacenter.org%2Ftemplates%2Fc691629c-1183-4425-9a12-26201eab1a10) is **predefined and fixed** within the Redwood platform. The template defines the required structure, fields, data types, and controlled terms that must be used when describing data files.
 
 Data file metadata is applied **at the time of data upload**. When a data file is uploaded together with its corresponding metadata file, the platform performs a **strict validation** of the metadata file against the predefined template. This validation ensures that:
@@ -55,19 +55,19 @@ Data file metadata is applied **at the time of data upload**. When a data file i
 
 If the metadata file does not comply with the template, it **will fail validation** and the data file **cannot be uploaded successfully** to the platform.
 
-Because the pre-defined data file metadata template is built into the validator and cannot currently be customized, this approach may limit flexibility for projects with specialized metadata requirements or alternative data models.
+Because the predefined data file metadata template is built into the validator and cannot currently be customized, this approach may limit flexibility for projects with specialized metadata requirements or alternative data models.
 
 **Future Work**  
-Enhancements include enabling users to **customize data file metadata template**, allowing them to:
+Enhancements include enabling users to **customize the data file metadata template**, allowing them to:
 - Define project-specific metadata fields  
 - Extend or replace controlled vocabularies   
 
-Until customization is supported, users should ensure that their data file metadata strictly follows the predefined template to avoid upload failures.
+Until customization is supported, users should ensure that their data file metadata strictly follow the predefined template to avoid upload failures.
 
 ### Common Data Elements (CDEs)
-**Common Data Elements (CDEs)**: A type of health data specification commonly used in clinical and research settings to capture and bind together complex phenomena, like depression, through standardized, consistent, well-defined questions (variables), paired with a description of allowable responses (values or value type) that are used in a standardized, machine readable manner across studies or trials to prevent avoidable variability.
+**Common Data Elements (CDEs)**: A type of health data specification commonly used in clinical and research settings to capture and bind together complex phenomena, like depression, through standardized, consistent, well-defined questions (variables), paired with a description of allowable responses (values or value type) that are used in a standardized, machine-readable manner across studies or trials to prevent avoidable variability.
 
-The platform uses a [**Global Codebook**](./Global_Codebook.xlsx) , which serves as the authoritative data dictionary for all required CDEs. The Global Codebook defines the structure, semantics, and permissible values for each CDE.
+The platform uses a [**Global Codebook**](./Global_Codebook.xlsx), which serves as the authoritative data dictionary for all required CDEs. The Global Codebook defines the structure, semantics, and permissible values for each CDE.
 
 When a data file is uploaded with a filename ending in `"transformcopy"`, it is treated as a **harmonized data file**. For such files, the platform backend automatically performs **CDE validation**, which enforces the following rules:
 - The harmonized data file must contain **at least one CDE** defined in the Global Codebook  
@@ -78,9 +78,9 @@ Because CDE validation is strictly based on the Global Codebook, all harmonized 
 At present, the platform does not support customized harmonization workflows or project-specific CDE definitions. All harmonized data must be mapped to the Global Codebook in order to pass CDE validation. This may require projects to adapt or restructure their data, even when their existing CDEs are well defined and internally consistent.
 
 **Future Work**  
-A enhancement is to support **customizable harmonization**, allowing projects to define and manage their own CDEs. This would include enabling project-specific codebooks, validation rules, and harmonization logic, while preserving consistency and interoperability within each project’s context.
+An enhancement is to support **customizable harmonization**, allowing projects to define and manage their own CDEs. This would include enabling project-specific codebooks, validation rules, and harmonization logic, while preserving consistency and interoperability within each project’s context.
 
-### Data Dictionary 
+### Data Dictionary
 
 When a data dictionary is uploaded together with its corresponding data file, the platform performs a **backend validation** of the data dictionary. To pass this validation, the data dictionary must conform to a **specific CSV-based format** defined by the platform.
 
@@ -89,7 +89,7 @@ The required data dictionary specification, including expected structure, column
 Because the data dictionary format is strictly enforced and not currently configurable, this approach may limit flexibility for projects that use alternative data dictionary structures or formats.
 
 **Future Work**  
-A enhancement is to support more flexible data dictionary ingestion, including the ability to accommodate project-specific formats or configurable validation rules, while maintaining consistency and data quality checks.
+An enhancement is to support more flexible data dictionary ingestion, including the ability to accommodate project-specific formats or configurable validation rules, while maintaining consistency and data quality checks.
 
 ## Content Management Limitations
 
@@ -218,7 +218,7 @@ Events are stored in the database and displayed on:
 
 **Important Notes:**
 
-- Events are automatically filtered by `event_date` (upcoming vs past)
+- Events are automatically filtered by `event_date` (upcoming vs. past)
 - Past events are displayed separately on the Events page
 - Homepage shows only the next 3 upcoming events
 - Use `event_type_id` to categorize events (e.g., webinar, workshop, conference)
@@ -280,7 +280,7 @@ VALUES (6, 'video', NULL);
 
 **Current Implementation:**
 
-In the Redwood website, the **Helpful Information → Resource Center** section displays content as cards grouped into predefined categories: General, For Researchers, and For Submitters. The content of cards are **hardcoded directly in the frontend codebase**. This means:
+On the Redwood website, the **Helpful Information → Resource Center** section displays content as cards grouped into predefined categories: General, For Researchers, and For Submitters. The content of the cards is **hardcoded directly in the frontend codebase**. This means:
 
 - Card content, titles, descriptions, and buttons are defined in JSX files
 - Changes require editing JavaScript/React component files
