@@ -18,8 +18,7 @@
 Before starting, ensure you have:
 
 ### Required Tools
-- [ ] **AWS Account** with appropriate permissions (AdministratorAccess or specific service permissions)
-- [ ] **AWS CLI** installed and configured
+- [ ] **AWS Account** 
 - [ ] **Docker** installed and running (for building images and Lambda layers)
 - [ ] **Git** installed
 - [ ] **Python 3.11+** (for Lambda deployment scripts)
@@ -87,9 +86,9 @@ choco install awscli docker-desktop git python311 openjdk17 maven nodejs postgre
 
 Use this checklist to track your progress. Each step links to detailed instructions below.
 
-### Pre-Deployment Setup (15 min)
+### Pre-Deployment Setup (20 min)
 - [ ] **Step 0:** [Clone repositories](#step-0-clone-repositories) (5 min)
-- [ ] **Step 1:** [Configure AWS CLI](#step-1-configure-aws-cli) (5 min)
+- [ ] **Step 1:** [Install and Configure AWS CLI](#step-1-configure-aws-cli) (10 min)
 - [ ] **Step 2:** [Set environment variables](#step-2-set-environment-variables) (5 min)
 
 ### Core AWS Infrastructure (~3 hours)
@@ -118,11 +117,15 @@ Use this checklist to track your progress. Each step links to detailed instructi
   - [ ] **Step 18a:** [Deploy SES Stack](#step-18a-deploy-ses-stack) (10 min)
   - [ ] **Step 18b:** [Configure SES Email Verification](#step-18b-configure-ses-email-verification)  (10 min)
 - [ ] **Step 19:** [Deploy EventBridge Stack](#step-19-deploy-eventbridge-stack) (5 min)
-- [ ] **Step 20:** [Build and Deploy Services](#step-20-build-and-deploy-services)  (50 min)
+- [ ] **Step 20:** [Deploy TransferFamily Stack](#step-20-deploy-transferfamily-stack-sftp-server) (10 min)
+  - [ ] **Step 20a:** [Create SFTP User Secret](#step-20a-create-sftp-user-secret)
+  - [ ] **Step 20b:** [Allocate Elastic IP](#step-20b-optional-allocate-elastic-ip) (Optional)
+  - [ ] **Step 20c:** [Deploy TransferFamily Stack](#step-20c-deploy-transferfamily-stack)
+- [ ] **Step 21:** [Build and Deploy Services](#step-21-build-and-deploy-services)  (50 min)
 
 ### Post-Deployment (10 min)
-- [ ] **Step 21:** [Verify deployment](#step-21-verify-deployment)
-- [ ] **Step 22:** [Test application](#step-22-test-application)
+- [ ] **Step 22:** [Verify deployment](#step-22-verify-deployment)
+- [ ] **Step 23:** [Test application](#step-23-test-application)
 
 ---
 
@@ -161,10 +164,18 @@ ls -la
 
 ---
 
-### Step 1: Configure AWS CLI
-**Time:** 5 minutes
+### Step 1: Install and Configure AWS CLI
+**Time:** 10 minutes
 
-Set up AWS credentials for deployment:
+#### Step 1a: Install AWS CLI
+```bash
+# For MacOS:
+brew install awscli
+# Verify installation
+aws --version
+```
+
+#### Step 1b: Set up AWS credentials for deployment:
 
 **Get AWS credentials:**
 1. Log into AWS Console
@@ -192,8 +203,6 @@ output=json
 EOL
 ```
 
-
-
 ✅ **Verify:** Test AWS connectivity
 ```bash
 aws sts get-caller-identity --profile datahub-rep
@@ -201,6 +210,16 @@ aws sts get-caller-identity --profile datahub-rep
 
 **Expected output:** Should show your AWS account ID, user ARN, and user ID.
 
+#### Step 1c: Grant IAM Permissions
+
+The IAM user performing the deployment must have permissions for the following AWS services: CloudFormation, VPC, EC2, S3, Elastic Load Balancing (ALB), RDS, Route53, CloudWatch, SQS, ECR, OpenSearch Service, Secrets Manager, ECS, SES, Lambda, EventBridge, and IAM. Alternatively, for simplified setup, you may assign the IAM user the **AdministratorAccess** managed policy, which provides full access to all AWS services required by the system.
+
+```bash
+# Change to your own user name below
+aws iam attach-user-policy \
+  --user-name datahub-dev \ 
+  --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+```
 ---
 
 ### Step 2: Set Environment Variables
@@ -212,15 +231,25 @@ Set environment variables that will be used throughout the deployment:
 # Set environment (dev, test, or prod)
 export ENV=dev
 
+# Set project name (use a different project name as you want)
+# Navigate to CloudFormation repository
+cd ~/dataHub/datahub-cloud-replication
+
+# Open parameters file for your environment
+nano parameters-${ENV}.json  
+
+# edit your `ProjectName` parameter
+
+# save it in the environment variable
+export PROJECT_NAME=$(cat parameters-${ENV}.json | grep -o '"ProjectName": "[^"]*"' | cut -d'"' -f4)
+
 # Set AWS profile and region
 export AWS_PROFILE=datahub-rep
 export AWS_DEFAULT_REGION=us-east-1
 
-# Navigate to CloudFormation repository
-cd ~/dataHub/datahub-cloud-replication
-
 # Verify settings
 echo "Environment: $ENV"
+echo "ProjectName: $PROJECT_NAME"
 echo "AWS Profile: $AWS_PROFILE"
 echo "AWS Region: $AWS_DEFAULT_REGION"
 ```
@@ -228,6 +257,10 @@ echo "AWS Region: $AWS_DEFAULT_REGION"
 ---
 
 ## Core AWS Infrastructure
+### Navigate to CloudFormation repository
+```bash
+cd ~/dataHub/datahub-cloud-replication
+```
 
 ### Step 3: Deploy Networking Stack
 **Time:** 5 minutes
@@ -236,19 +269,19 @@ Creates VPC, subnets, security groups, and networking infrastructure.
 
 ```bash
 aws cloudformation deploy \
-  --stack-name DataHub-Networking-${ENV} \
+  --stack-name ${PROJECT_NAME}-Networking-${ENV} \
   --template-file modules/Networking.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
   --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
-  --tags projectname=datahub environment=${ENV}
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
 
 ✅ **Verify:** 
 ```bash
 aws cloudformation describe-stacks \
-  --stack-name DataHub-Networking-${ENV} \
+  --stack-name ${PROJECT_NAME}-Networking-${ENV} \
   --query 'Stacks[0].StackStatus' \
   --output text
 ```
@@ -285,29 +318,29 @@ echo "DataHubUniqueId: $DataHubUniqueId"
 - Example: `stanford-abc123`, `myorg-dev`, `acme-prod`
 
 **Bucket names that will be created:**
-- `datahub-upload-portal-{DataHubUniqueId}-{ENV}`
-- `sftp-datahub-{DataHubUniqueId}-{ENV}`
-- `datahub-review-{DataHubUniqueId}-{ENV}`
-- `datahub-default-{DataHubUniqueId}-{ENV}`
-- `datahub-lambda-artifacts-{DataHubUniqueId}-{ENV}`
+- `${PROJECT_NAME}-upload-portal-{DataHubUniqueId}-{ENV}`
+- `sftp-${PROJECT_NAME}-{DataHubUniqueId}-{ENV}`
+- `${PROJECT_NAME}-review-{DataHubUniqueId}-{ENV}`
+- `${PROJECT_NAME}-default-{DataHubUniqueId}-{ENV}`
+- `${PROJECT_NAME}-lambda-artifacts-{DataHubUniqueId}-{ENV}`
 
 #### 2. Deploy into AWS
 ```bash
 aws cloudformation deploy \
-  --stack-name DataHub-S3-${ENV} \
+  --stack-name ${PROJECT_NAME}-S3-${ENV} \
   --template-file modules/S3.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
   --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
-  --tags projectname=datahub environment=${ENV}
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
 
 ⚠️ **Troubleshooting:** If deployment fails with "BucketAlreadyExists", go back to Step 4.1 and choose a different `DataHubUniqueId`.
 
 ✅ **Verify:** 
 ```bash
-aws s3 ls | grep datahub-${DataHubUniqueId}-${ENV}
+aws s3 ls | grep ${PROJECT_NAME}-${DataHubUniqueId}-${ENV}
 ```
 **Expected:** Should list 5 buckets
 
@@ -320,13 +353,13 @@ Creates Application Load Balancer, target groups, and routing rules.
 
 ```bash
 aws cloudformation deploy \
-  --stack-name DataHub-LoadBalancer-${ENV} \
+  --stack-name ${PROJECT_NAME}-LoadBalancer-${ENV} \
   --template-file modules/LoadBalancer.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
   --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
-  --tags projectname=datahub environment=${ENV}
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
 
 ✅ **Verify:** Get ALB DNS name
@@ -344,7 +377,7 @@ aws elbv2 describe-load-balancers \
 
 Creates RDS PostgreSQL database instance.
 
-#### 6a. Configure RDS Security Group
+#### Step 6a. Configure RDS Security Group
 
 Before deploying, add your local IP to allow database connection for schema setup:
 
@@ -359,17 +392,17 @@ Edit [RDS.yaml](https://github.com/bmir-datahub/datahub-cloud-replication/blob/f
   Description: "Your workstation"
 ```
 
-#### 6b. Deploy RDS Stack
+#### Step 6b. Deploy RDS Stack
 
 ```bash
 aws cloudformation deploy \
-  --stack-name DataHub-RDS-${ENV} \
+  --stack-name ${PROJECT_NAME}-RDS-${ENV} \
   --template-file modules/RDS.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
   --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
-  --tags projectname=datahub environment=${ENV}
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
 
 ⏳ **Wait time:** 10-15 minutes for RDS instance to be created
@@ -377,7 +410,7 @@ aws cloudformation deploy \
 ✅ **Verify:** Get RDS endpoint
 ```bash
 aws rds describe-db-instances \
-  --query 'DBInstances[?DBInstanceIdentifier==`datahub-postgres-'${ENV}'`].Endpoint.Address' \
+  --query 'DBInstances[?DBInstanceIdentifier==`${PROJECT_NAME}-postgres-'${ENV}'`].Endpoint.Address' \
   --output text
 ```
 #### **Expected:** Endpoint like `datahub-postgres-dev.abc123.us-east-1.rds.amazonaws.com`
@@ -388,16 +421,34 @@ aws rds describe-db-instances \
 
 This step creates the database schema, tables, views, and initial data in your RDS PostgreSQL instance.
 
+#### 📘 Detailed Documentation
+
+**See:** [README_RDS_DEPLOYMENT.md](https://github.com/bmir-datahub/datahub-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
+
+
 #### Quick Setup (Automated)
 
 Use the automated Python deployment script:
 
 ```bash
+# Navigate to the python script
 cd ~/dataHub/datahub-development/db/postgres/db-create-scripts
 
+python deploy_to_rds.py --project-name <project-name> --env <env> --region <region> --profile <profile>
+
 # Deploy database schema to dev environment
-python deploy_to_rds.py --env dev --region us-east-1 --profile datahub-rep
+python deploy_to_rds.py --project-name ${PROJECT_NAME} --env dev --region us-east-1 --profile datahub-rep
+
+# Examples for other environments:
+# python deploy_to_rds.py --project-name datahub --env test --region us-east-1 --profile datahub-rep
+# python deploy_to_rds.py --project-name datahub --env prod --region us-east-1 --profile datahub-rep
 ```
+
+**Script Parameters:**
+- `--project-name`: Project name (e.g., `datahub`) - **REQUIRED**
+- `--env`: Environment (`dev`, `test`, or `prod`) - default: `dev`
+- `--region`: AWS region - default: `us-east-1`
+- `--profile`: AWS profile name - default: `datahub-rep`
 
 **What the script does:**
 1. ✅ Verifies AWS credentials and RDS connectivity
@@ -422,9 +473,6 @@ After database deployment, update the [secret](https://github.com/bmir-datahub/d
 ⚠️ **Note:** Step 6 will display the RDS endpoint. Use that endpoint to update `host` value in Secrets Manager (see detailed guide below).
 
 
-#### 📘 Detailed Documentation
-
-**See:** [README_RDS_DEPLOYMENT.md](https://github.com/bmir-datahub/datahub-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
 
 ---
 
@@ -439,13 +487,13 @@ Creates DNS records and routing configurations.
 cd ~/dataHub/datahub-cloud-replication
 
 aws cloudformation deploy \
-  --stack-name DataHub-Route53-${ENV} \
+  --stack-name ${PROJECT_NAME}-Route53-${ENV} \
   --template-file modules/Route53.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
   --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
-  --tags projectname=datahub environment=${ENV}
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
 
 💡 **Skip this step** if you don't have Route53 hosted zones configured.
@@ -461,13 +509,13 @@ Creates monitoring, logging, and alerting infrastructure.
 cd ~/dataHub/datahub-cloud-replication 
 
 aws cloudformation deploy \
-  --stack-name DataHub-CloudWatch-${ENV} \
+  --stack-name ${PROJECT_NAME}-CloudWatch-${ENV} \
   --template-file modules/CloudWatch.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
   --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
-  --tags projectname=datahub environment=${ENV}
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
 
 ✅ **Verify:** List log groups
@@ -484,13 +532,13 @@ Creates SQS queues for message processing.
 
 ```bash
 aws cloudformation deploy \
-  --stack-name DataHub-SQS-${ENV} \
+  --stack-name ${PROJECT_NAME}-SQS-${ENV} \
   --template-file modules/SQS.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
   --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
-  --tags projectname=datahub environment=${ENV}
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
 
 ---
@@ -502,24 +550,24 @@ Creates ECR repositories for container images.
 
 ```bash
 aws cloudformation deploy \
-  --stack-name DataHub-ECR-${ENV} \
+  --stack-name ${PROJECT_NAME}-ECR-${ENV} \
   --template-file modules/ECR.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
   --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
-  --tags projectname=datahub environment=${ENV}
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
 
 **What's created:**
 - ECR repositories for each microservice:
-  - `datahub-user-service/{ENV}`
-  - `datahub-submission-service/{ENV}`
-  - `datahub-report-service/{ENV}`
-  - `datahub-download-service/{ENV}`
-  - `datahub-entity-service/{ENV}`
-  - `datahub-search-service/{ENV}`
-  - `datahub-ui/{ENV}`
+  - `${PROJECT_NAME}-user-service/{ENV}`
+  - `${PROJECT_NAME}-submission-service/{ENV}`
+  - `${PROJECT_NAME}-report-service/{ENV}`
+  - `${PROJECT_NAME}-download-service/{ENV}`
+  - `${PROJECT_NAME}-entity-service/{ENV}`
+  - `${PROJECT_NAME}-search-service/{ENV}`
+  - `${PROJECT_NAME}-ui/{ENV}`
 
 ✅ **Verify:** List ECR repositories
 ```bash
@@ -555,13 +603,13 @@ Edit `parameters-${ENV}.json` and update:
 
 ```bash
 aws cloudformation deploy \
-  --stack-name DataHub-OpenSearch-${ENV} \
+  --stack-name ${PROJECT_NAME}-OpenSearch-${ENV} \
   --template-file modules/OpenSearch.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
   --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
-  --tags projectname=datahub environment=${ENV}
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
 
 ⏳ **Wait time:** 15-20 minutes for OpenSearch domain to be created
@@ -569,7 +617,7 @@ aws cloudformation deploy \
 ✅ **Verify:** Get OpenSearch endpoint
 ```bash
 aws opensearch describe-domain \
-  --domain-name datahub-opensearch-${ENV} \
+  --domain-name ${PROJECT_NAME}-opensearch-${ENV} \
   --query 'DomainStatus.Endpoint' \
   --output text
 ```
@@ -586,13 +634,13 @@ Creates secrets for database credentials, API keys, and OpenSearch configuration
 
 ```bash
 aws cloudformation deploy \
-  --stack-name DataHub-SecretsManager-${ENV} \
+  --stack-name ${PROJECT_NAME}-SecretsManager-${ENV} \
   --template-file modules/SecretsManager.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
   --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
-  --tags projectname=datahub environment=${ENV}
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
 
 ✅ **Verify:** Check secret was created
@@ -670,9 +718,30 @@ Layer ARN:
 
 Package and upload Lambda function code to S3.
 
+**Script Usage:**
+```bash
+python deploy_lambda.py <project-name> <env> <unique-id>
+```
+
+**Parameters:**
+
+- **project-name**: Project name (e.g., `datahub`, `Redwood`) - **REQUIRED**
+- **env**: `dev`, `test`, or `prod` - **REQUIRED**
+- **DataHubUniqueId**: Unique identifier for S3 bucket (e.g., `stanford`) - **REQUIRED**
+  - S3 bucket: `${PROJECT_NAME}-lambda-artifacts-{DataHubUniqueId}-{env}`
+
+
 ```bash
 # Still in opensearch_reindex directory
-python deploy_lambda.py ${ENV} ${DataHubUniqueId}
+
+# Upload to dev environment
+python deploy_lambda.py datahub dev stanford
+
+# Upload to test environment
+python deploy_lambda.py datahub test stanford
+
+# Upload to prod environment
+python deploy_lambda.py datahub prod stanford
 ```
 
 **What this does:**
@@ -683,13 +752,13 @@ python deploy_lambda.py ${ENV} ${DataHubUniqueId}
    - `variable_index_mapping.json`
    - `autocomplete_index_mapping.json`
 3. Creates ZIP (should be <100KB)
-4. Uploads to S3: `s3://datahub-lambda-artifacts-{DataHubUniqueId}-{ENV}/opensearch-refresh/`
+4. Uploads to S3: `s3://${PROJECT_NAME}-lambda-artifacts-{DataHubUniqueId}-{ENV}/opensearch-refresh/`
 
 ⚠️ **Note:** Dependencies are NOT included (they're in the layer from Step 14a)
 
 ✅ **Verify:** Check S3 upload
 ```bash
-aws s3 ls s3://datahub-lambda-artifacts-${DataHubUniqueId}-${ENV}/opensearch-refresh/
+aws s3 ls s3://${PROJECT_NAME}-lambda-artifacts-${DataHubUniqueId}-${ENV}/opensearch-refresh/
 ```
 **Expected:** Should show `opensearch-refresh-lambda.zip`
 
@@ -703,7 +772,7 @@ mvn clean package -DskipTests
 
 # Upload to S3
 aws s3 cp target/datahub-service-email-0.0.1-SNAPSHOT-aws.jar \
-  s3://datahub-lambda-artifacts-${DataHubUniqueId}-${ENV}/email-service/
+  s3://${PROJECT_NAME}-lambda-artifacts-${DataHubUniqueId}-${ENV}/email-service/
 ```
 
 ---
@@ -717,22 +786,22 @@ Creates Lambda functions for OpenSearch indexing and email service.
 cd ~/dataHub/datahub-cloud-replication
 
 aws cloudformation deploy \
-  --stack-name DataHub-Lambda-${ENV} \
+  --stack-name ${PROJECT_NAME}-Lambda-${ENV} \
   --template-file modules/Lambda.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
   --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
-  --tags projectname=datahub environment=${ENV}
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
 
 **What's created:**
-- Lambda function: `DataHub-OpenSearchRefresh`
+- Lambda function: `${PROJECT_NAME}-OpenSearchRefresh`
   - Runtime: Python 3.11 on ARM64
   - VPC: Deployed in private subnets
   - Attached layer from Step 14a
   - Code from S3 (Step 14b)
-- Lambda function: `DataHub-EmailService`
+- Lambda function: `${PROJECT_NAME}-EmailService`
   - Runtime: Java 17
   - Code from S3
 - IAM roles and permissions
@@ -748,7 +817,7 @@ aws lambda list-functions --query 'Functions[?contains(FunctionName, `DataHub`)]
 
 ```bash
 aws lambda invoke \
-  --function-name DataHub-OpenSearchRefresh \
+  --function-name ${PROJECT_NAME}-OpenSearchRefresh \
   --payload '{}' \
   response.json
 
@@ -764,13 +833,13 @@ Creates ECS cluster, services, and container definitions for all microservices.
 
 ```bash
 aws cloudformation deploy \
-  --stack-name DataHub-ECS-${ENV} \
+  --stack-name ${PROJECT_NAME}-ECS-${ENV} \
   --template-file modules/ECS.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
   --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
-  --tags projectname=datahub environment=${ENV}
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
 
 ⏳ **Wait time:** 15-20 minutes for all services to start
@@ -787,12 +856,12 @@ aws cloudformation deploy \
 
 ✅ **Verify:** Check ECS services are running
 ```bash
-aws ecs list-services --cluster datahub-Services-${ENV}
+aws ecs list-services --cluster ${PROJECT_NAME}-Services-${ENV}
 
 # Check running tasks
 aws ecs describe-services \
-  --cluster datahub-Services-${ENV} \
-  --services $(aws ecs list-services --cluster datahub-Services-${ENV} --query 'serviceArns' --output text) \
+  --cluster ${PROJECT_NAME}-Services-${ENV} \
+  --services $(aws ecs list-services --cluster ${PROJECT_NAME}-Services-${ENV} --query 'serviceArns' --output text) \
   --query 'services[*].{Name:serviceName,Running:runningCount,Desired:desiredCount}'
 ```
 
@@ -824,13 +893,13 @@ Edit [`modules/SES.yaml`](https://github.com/bmir-datahub/datahub-cloud-replicat
 
 ```bash
 aws cloudformation deploy \
-  --stack-name DataHub-SES-${ENV} \
+  --stack-name ${PROJECT_NAME}-SES-${ENV} \
   --template-file modules/SES.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
   --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
-  --tags projectname=datahub environment=${ENV}
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
 
 ⚠️ **Important:** Email identities must be verified before emails can be sent. Complete Step 18b below.
@@ -884,13 +953,13 @@ Creates EventBridge rules to automatically trigger SQS processing when files are
 
 ```bash
 aws cloudformation deploy \
-  --stack-name DataHub-EventBridge-${ENV} \
+  --stack-name ${PROJECT_NAME}-EventBridge-${ENV} \
   --template-file modules/EventBridge.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
   --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
-  --tags projectname=datahub environment=${ENV}
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
 
 **What's created:**
@@ -899,7 +968,126 @@ aws cloudformation deploy \
 
 ---
 
-### Step 20: Build and Deploy Services
+### Step 20: Deploy TransferFamily Stack (SFTP Server) (Need check)
+**Time:** 10 minutes
+
+Creates an AWS Transfer Family SFTP server with custom Lambda-based authentication for secure file uploads.
+
+#### Prerequisites
+
+Before deploying, you need to:
+
+1. **Create an SFTP User Secret** in Secrets Manager with the required user credentials and permissions
+2. **Obtain an Elastic IP** (optional, but recommended for static SFTP endpoint)
+
+#### Step 20a: Create SFTP User Secret
+
+Create a secret in Secrets Manager that contains the SFTP user configuration:
+
+```bash
+# Create a file with the user secret JSON
+cat > sftp-user-secret.json <<EOF
+{
+  "Password": "YourSecurePasswordHere",
+  "Role": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${PROJECT_NAME}-CustomSFTPTransferRole",
+  "HomeDirectory": "/${PROJECT_NAME}-sftp-${UNIQUE_ID}-${ENV}/${PROJECT_NAME}-user",
+  "PublicKeys": "",
+  "Policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"AllowListingOfUserFolder\",\"Action\":[\"s3:ListBucket\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:s3:::\${transfer:HomeBucket}\"],\"Condition\":{\"StringLike\":{\"s3:prefix\":[\"\${transfer:HomeFolder}/*\",\"\${transfer:HomeFolder}\"]}}},{\"Sid\":\"HomeDirObjectAccess\",\"Effect\":\"Allow\",\"Action\":[\"s3:PutObject\",\"s3:GetObject\",\"s3:DeleteObject\",\"s3:DeleteObjectVersion\",\"s3:GetObjectVersion\",\"s3:GetObjectACL\",\"s3:PutObjectACL\"],\"Resource\":\"arn:aws:s3:::\${transfer:HomeDirectory}*\"}]}"
+}
+EOF
+
+# Create the secret in Secrets Manager
+aws secretsmanager create-secret \
+  --name "SFTP/${PROJECT_NAME}-user" \
+  --description "${PROJECT_NAME} Transfer Family SFTP User" \
+  --secret-string file://sftp-user-secret.json \
+  --region ${AWS_DEFAULT_REGION} \
+  --profile ${AWS_PROFILE} \
+  --tags Key=projectname,Value=${PROJECT_NAME} Key=environment,Value=${ENV}
+
+# Clean up the temporary file
+rm sftp-user-secret.json
+```
+
+**Important:** Replace `YourSecurePasswordHere` with a strong password for SFTP authentication.
+
+#### Step 20b: (Optional) Allocate Elastic IP
+
+For a static SFTP endpoint address:
+
+```bash
+# Allocate an Elastic IP
+aws ec2 allocate-address \
+  --domain vpc \
+  --region ${AWS_DEFAULT_REGION} \
+  --profile ${AWS_PROFILE} \
+  --tag-specifications 'ResourceType=elastic-ip,Tags=[{Key=Name,Value='${PROJECT_NAME}'-sftp-'${ENV}'},{Key=projectname,Value='${PROJECT_NAME}'},{Key=environment,Value='${ENV}'}]'
+
+# Note the AllocationId from the output - you'll need it for deployment
+```
+
+#### Step 20c: Deploy TransferFamily Stack
+
+```bash
+aws cloudformation deploy \
+  --stack-name ${PROJECT_NAME}-TransferFamily-${ENV} \
+  --template-file modules/TransferFamily.yaml \
+  --parameter-overrides \
+    file://parameters-${ENV}.json \
+    ElasticIPAllocationId=<YOUR_ELASTIC_IP_ALLOCATION_ID> \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region ${AWS_DEFAULT_REGION} \
+  --profile ${AWS_PROFILE} \
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
+```
+
+**Note:** If you skip the Elastic IP, remove the `ElasticIPAllocationId` parameter or set it to empty string `''`.
+
+**What's created:**
+- AWS Transfer Family SFTP server with VPC endpoints
+- Lambda function for custom authentication against Secrets Manager
+- API Gateway REST API for authentication integration
+- IAM roles and policies for SFTP file operations
+- CloudWatch log groups for SFTP access logs
+
+✅ **Verify:** Get SFTP server endpoint
+```bash
+# Get the server ID
+SERVER_ID=$(aws transfer list-servers \
+  --region ${AWS_DEFAULT_REGION} \
+  --profile ${AWS_PROFILE} \
+  --query 'Servers[?Tags[?Key==`projectname` && Value==`'${PROJECT_NAME}'`]].ServerId' \
+  --output text)
+
+# Get the endpoint
+echo "SFTP Endpoint: ${SERVER_ID}.server.transfer.${AWS_DEFAULT_REGION}.amazonaws.com"
+```
+
+**Expected:** Server ID should be returned (format: `s-1234567890abcdef0`)
+
+#### Testing SFTP Access
+
+Test the SFTP connection:
+
+```bash
+# Test SFTP connection
+sftp ${PROJECT_NAME}-user@${SERVER_ID}.server.transfer.${AWS_DEFAULT_REGION}.amazonaws.com
+# Enter the password you configured in the secret
+
+# Once connected, verify your home directory
+pwd
+# Expected: /sftp-${PROJECT_NAME}-${UNIQUE_ID}-${ENV}/${PROJECT_NAME}-user
+
+# Upload a test file
+put test.txt
+
+# Exit
+exit
+```
+
+---
+
+### Step 21: Build and Deploy Services
 **Time:** 50 minutes (for all 7 services)
 
 **Now that all AWS infrastructure is deployed, build and deploy your application services to ECS.**
@@ -931,14 +1119,22 @@ The `deploy.py` script automates the entire build and deployment process for eac
 ```bash
 cd ~/dataHub
 
+# Usage: python deploy.py <project-name> <service-name> <environment> [image-tag]
+# project-name,  service-name and environment are required, while image-tag is optioanl
+# image-tag with 'lastest' will be used, so the default value of image-tag is 'latest'.
+
 # Deploy each service (one at a time)
-python deploy.py user-service ${ENV}
-python deploy.py submission-service ${ENV}
-python deploy.py report-service ${ENV}
-python deploy.py download-service ${ENV}
-python deploy.py entity-service ${ENV}
-python deploy.py search-service ${ENV}
-python deploy.py ui ${ENV}
+python deploy.py ${PROJECT_NAME} user-service ${ENV}
+python deploy.py ${PROJECT_NAME} submission-service ${ENV}
+python deploy.py ${PROJECT_NAME} report-service ${ENV}
+python deploy.py ${PROJECT_NAME} download-service ${ENV}
+python deploy.py ${PROJECT_NAME} entity-service ${ENV}
+python deploy.py ${PROJECT_NAME} search-service ${ENV}
+python deploy.py ${PROJECT_NAME} ui ${ENV}
+
+# Example with specific values:
+# python deploy.py datahub user-service dev
+# python deploy.py datahub ui prod latest
 ```
 
 **What the script does for EACH service:**
@@ -957,14 +1153,14 @@ python deploy.py ui ${ENV}
 #### Progress Tracking
 
 You can check deployment progress in AWS Console:
-- **ECS Console** → Clusters → `datahub-cluster-{ENV}` → Services
+- **ECS Console** → Clusters → `${PROJECT_NAME}-Services-{ENV}` → Services
 - Watch for "Running count" to reach "Desired count" (1/1)
 
 ✅ **Verify:** Check all services are deployed
 ```bash
 aws ecs describe-services \
-  --cluster datahub-cluster-${ENV} \
-  --services $(aws ecs list-services --cluster datahub-Services-${ENV} --query 'serviceArns' --output text) \
+  --cluster ${PROJECT_NAME}-cluster-${ENV} \
+  --services $(aws ecs list-services --cluster ${PROJECT_NAME}-Services-${ENV} --query 'serviceArns' --output text) \
   --query 'services[*].{Name:serviceName,Running:runningCount,Desired:desiredCount,Status:status}' \
   --output table
 ```
@@ -974,7 +1170,7 @@ aws ecs describe-services \
 
 ## Post-Deployment Verification
 
-### Step 21: Verify Deployment
+### Step 22: Verify Deployment
 **Time:** 5 minutes
 
 Check that all stacks deployed successfully:
@@ -990,39 +1186,39 @@ aws cloudformation list-stacks \
 **Expected:** All stacks should show `CREATE_COMPLETE` or `UPDATE_COMPLETE`
 
 **Stacks you should see (14 total):**
-1. DataHub-Networking-{ENV}
-2. DataHub-S3-{ENV}
-3. DataHub-LoadBalancer-{ENV}
-4. DataHub-RDS-{ENV}
-5. DataHub-Route53-{ENV} (optional)
-6. DataHub-CloudWatch-{ENV}
-7. DataHub-SQS-{ENV}
-8. DataHub-ECR-{ENV}
-9. DataHub-OpenSearch-{ENV}
-10. DataHub-SecretsManager-{ENV}
-11. DataHub-ECS-{ENV}
-12. DataHub-Lambda-{ENV}
-13. DataHub-SES-{ENV}
-14. DataHub-EventBridge-{ENV}
+1. ${PROJECT_NAME}-Networking-{ENV}
+2. ${PROJECT_NAME}-S3-{ENV}
+3. ${PROJECT_NAME}-LoadBalancer-{ENV}
+4. ${PROJECT_NAME}-RDS-{ENV}
+5. ${PROJECT_NAME}-Route53-{ENV} (optional)
+6. ${PROJECT_NAME}-CloudWatch-{ENV}
+7. ${PROJECT_NAME}-SQS-{ENV}
+8. ${PROJECT_NAME}-ECR-{ENV}
+9. ${PROJECT_NAME}-OpenSearch-{ENV}
+10. ${PROJECT_NAME}-SecretsManager-{ENV}
+11. ${PROJECT_NAME}-ECS-{ENV}
+12. ${PROJECT_NAME}-Lambda-{ENV}
+13. ${PROJECT_NAME}-SES-{ENV}
+14. ${PROJECT_NAME}-EventBridge-{ENV}
 
 **Services you should see running (7 total):**
 ```bash
 # Check ECS services
-aws ecs list-services --cluster datahub-Services-${ENV} --query 'serviceArns' --output table
+aws ecs list-services --cluster ${PROJECT_NAME}-Services-${ENV} --query 'serviceArns' --output table
 ```
 
 Expected services:
-1. datahub-UserService
-2. datahub-SubmissionService
-3. datahub-ReportService
-4. datahub-DownloadService
-5. datahub-EntityService
-6. datahub-SearchService
-7. datahub-Frontend (UI)
+1. ${PROJECT_NAME}-UserService
+2. ${PROJECT_NAME}-SubmissionService
+3. ${PROJECT_NAME}-ReportService
+4. ${PROJECT_NAME}-DownloadService
+5. ${PROJECT_NAME}-EntityService
+6. ${PROJECT_NAME}-SearchService
+7. ${PROJECT_NAME}-Frontend (UI)
 
 ---
 
-### Step 22: Test Application
+### Step 23: Test Application
 
 Test that the application is accessible and functioning:
 
@@ -1065,7 +1261,7 @@ Open your browser and navigate to: `http://{ALB_DNS}`
 ```bash
 # Check stack events for errors
 aws cloudformation describe-stack-events \
-  --stack-name DataHub-{ENV}-{STACK-NAME} \
+  --stack-name ${PROJECT_NAME}-{ENV}-{STACK-NAME} \
   --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`]'
 ```
 
@@ -1087,7 +1283,7 @@ aws cloudformation describe-stack-events \
 
 ```bash
 # Check task logs
-aws logs tail /ecs/datahub-user-service --follow
+aws logs tail /ecs/${PROJECT_NAME}-user-service --follow
 ```
 
 #### Lambda Function Fails
@@ -1102,7 +1298,7 @@ aws logs tail /ecs/datahub-user-service --follow
 
 ```bash
 # Check Lambda logs
-aws logs tail /aws/lambda/DataHub-OpenSearchRefresh-${ENV} --follow
+aws logs tail /aws/lambda/${PROJECT_NAME}-OpenSearchRefresh-${ENV} --follow
 ```
 
 #### Database Connection Issues
@@ -1132,7 +1328,7 @@ psql -h $RDS_ENDPOINT -U datahub_user -d datahub_${ENV}
 
 ```bash
 # Check OpenSearch domain status
-aws opensearch describe-domain --domain-name datahub-opensearch-${ENV} \
+aws opensearch describe-domain --domain-name ${PROJECT_NAME}-opensearch-${ENV} \
   --query 'DomainStatus.{Status:Processing,Health:DomainEndpointOptions.EnforceHTTPS}'
 ```
 
@@ -1157,10 +1353,10 @@ S3 buckets with content cannot be deleted by CloudFormation:
 
 ```bash
 # List all DataHub S3 buckets
-aws s3 ls | grep datahub-${DataHubUniqueId}-${ENV}
+aws s3 ls | grep ${PROJECT_NAME}-${DataHubUniqueId}-${ENV}
 
 # Empty each bucket
-aws s3 ls | grep datahub-${DataHubUniqueId}-${ENV} | awk '{print $3}' | while read bucket; do
+aws s3 ls | grep ${PROJECT_NAME}-${DataHubUniqueId}-${ENV} | awk '{print $3}' | while read bucket; do
   echo "Emptying bucket: $bucket"
   aws s3 rm s3://$bucket --recursive
 done
@@ -1171,20 +1367,20 @@ done
 ```bash
 # Delete stacks in reverse dependency order
 stacks=(
-  "DataHub-EventBridge-${ENV}"
-  "DataHub-Lambda-${ENV}"
-  "DataHub-SES-${ENV}"
-  "DataHub-ECS-${ENV}"
-  "DataHub-SecretsManager-${ENV}"
-  "DataHub-OpenSearch-${ENV}"
-  "DataHub-ECR-${ENV}"
-  "DataHub-SQS-${ENV}"
-  "DataHub-CloudWatch-${ENV}"
-  "DataHub-Route53-${ENV}"
-  "DataHub-RDS-${ENV}"
-  "DataHub-LoadBalancer-${ENV}"
-  "DataHub-S3-${ENV}"
-  "DataHub-Networking-${ENV}"
+  "${PROJECT_NAME}-EventBridge-${ENV}"
+  "${PROJECT_NAME}-Lambda-${ENV}"
+  "${PROJECT_NAME}-SES-${ENV}"
+  "${PROJECT_NAME}-ECS-${ENV}"
+  "${PROJECT_NAME}-SecretsManager-${ENV}"
+  "${PROJECT_NAME}-OpenSearch-${ENV}"
+  "${PROJECT_NAME}-ECR-${ENV}"
+  "${PROJECT_NAME}-SQS-${ENV}"
+  "${PROJECT_NAME}-CloudWatch-${ENV}"
+  "${PROJECT_NAME}-Route53-${ENV}"
+  "${PROJECT_NAME}-RDS-${ENV}"
+  "${PROJECT_NAME}-LoadBalancer-${ENV}"
+  "${PROJECT_NAME}-S3-${ENV}"
+  "${PROJECT_NAME}-Networking-${ENV}"
 )
 
 for stack in "${stacks[@]}"; do
