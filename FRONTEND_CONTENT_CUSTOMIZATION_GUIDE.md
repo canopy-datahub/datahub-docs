@@ -1,22 +1,220 @@
-# Resource Center Customization Guide
+# Frontend UI Customization Guide
 
-This guide explains how to customize the Resource Center in the Redwood, including how to edit existing cards, add new cards, and create entirely new tabs.
+This guide explains how to customize various frontend UI elements in Redwood that are hardcoded in the codebase, including the Resource Center, homepage footer links, and other frontend-managed components.
 
 ## Table of Contents
 - [Overview](#overview)
-- [File Locations](#file-locations)
-- [Card Types and Categories](#card-types-and-categories)
-- [Card Structure](#card-structure)
-- [Editing Existing Cards](#editing-existing-cards)
-- [Adding New Cards to Existing Tabs](#adding-new-cards-to-existing-tabs)
-- [Creating a New Tab](#creating-a-new-tab)
-- [Card Properties Reference](#card-properties-reference)
-- [Button Types](#button-types)
-- [Examples](#examples)
-- [Quick Reference](#quick-reference)
+- [Homepage Footer Links](#homepage-footer-links)
+- [Footer Social Media Links](#footer-social-media-links)
+- [Resource Center](#resource-center)
+  - [File Locations](#file-locations)
+  - [Card Types and Categories](#card-types-and-categories)
+  - [Card Structure](#card-structure)
+  - [Editing Existing Cards](#editing-existing-cards)
+  - [Adding New Cards to Existing Tabs](#adding-new-cards-to-existing-tabs)
+  - [Creating a New Tab](#creating-a-new-tab)
+  - [Button Types](#button-types)
+  - [Examples](#examples)
+  - [Quick Reference](#quick-reference)
 ---
 
 ## Overview
+
+This guide covers customization of frontend UI elements that are hardcoded in the Redwood codebase. These elements require direct code changes rather than database or admin interface updates:
+
+- **Homepage Footer Links** - Related Websites and Website Policies columns
+- **Footer Social Media Links** - YouTube and Email/Newsletter icons in "Connect with Us" section
+- **Resource Center** - Informational cards organized into tabbed categories
+- Other frontend-managed components as needed
+
+All changes require rebuilding and redeploying the frontend application to take effect.
+
+---
+
+## Homepage Footer Links
+
+### Current Implementation
+
+The homepage footer contains two columns of links - **Related Websites** and **Website Policies** - that are currently **hardcoded in the frontend codebase**. These links are not managed through a database or admin interface.
+
+**Location:** `/datahub-ui-main/components/CoreLayout/Footer/Footer.jsx`
+
+### Editing Footer Links
+
+To customize the footer links for your deployment:
+
+#### Step 1: Navigate to the Footer Component
+
+File path: `/datahub-ui-main/components/CoreLayout/Footer/Footer.jsx`
+
+#### Step 2: Edit the "Related Websites" Section
+
+Located around lines 38-58 in the Footer component:
+
+- Modify the `<a>` elements within the column with the "Related Websites" heading
+- Update the `href` attribute with your desired URL
+- Update the link text (between the `<a>` and `</a>` tags)
+- Add or remove links by adding/removing `<a>` elements
+
+#### Step 3: Edit the "Website Policies" Section
+
+Located around lines 59-73 in the Footer component:
+
+- Modify the `<a>` elements within the column with the "Website Policies" heading
+- Follow the same steps as above to update URLs and link text
+
+#### Step 4: Add External Link Icons (Optional)
+
+To add an external link icon next to a link, wrap it in a `<div>` and add the `<ExternalLinkIcon />` component:
+
+```jsx
+<div>
+    <a href="https://example.com" target="_blank" rel="noopener noreferrer">
+        Link Text
+    </a>
+    <ExternalLinkIcon />
+</div>
+```
+
+#### Step 5: Rebuild and Redeploy
+
+- After making changes, rebuild the frontend application
+- Redeploy to your environment for changes to take effect
+
+### Example - Customizing a Footer Link
+
+```jsx
+// Before (default/placeholder):
+<a href="/" target="_blank" rel="noopener noreferrer">
+    Link
+</a>
+
+// After (customized):
+<a href="https://www.nih.gov/" target="_blank" rel="noopener noreferrer">
+    National Institutes of Health
+</a>
+```
+
+**Note:** The "Site" column (first column) in the footer contains internal navigation links that use Next.js routing. These should generally remain unchanged as they point to core platform pages.
+
+---
+
+## Footer Social Media Links
+
+### Current Implementation
+
+The footer contains social media links in the "Connect with Us" section - **YouTube** and **Email/Newsletter** icons - that are currently **hardcoded in the frontend codebase**. These links are not managed through a database or admin interface.
+
+**Location:** `/datahub-ui-main/components/CoreLayout/Footer/Footer.jsx`
+
+### Editing Social Media Links
+
+To customize the YouTube and email links in the footer:
+
+#### Step 1: Navigate to the Footer Component
+
+File path: `/datahub-ui-main/components/CoreLayout/Footer/Footer.jsx`
+
+#### Step 2: Locate the Social Media Links Section
+
+Look for the section with "Connect with Us:" text (around lines 86-100):
+
+```jsx
+<Row className={classes.socialText}>
+    <div>Connect with Us:</div>
+    <a href="/" target="_blank" rel="noopener noreferrer" aria-label="Youtube">
+        <YoutubeIcon />
+    </a>
+    <a
+        href="/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`px-2`}
+        aria-label="Link to Sign Up for Newsletter"
+    >
+        <MailIcon />
+    </a>
+</Row>
+```
+
+#### Step 3: Update the YouTube Link
+
+Modify the `href` attribute in the YouTube link (around line 88):
+
+```jsx
+// Before:
+<a href="/" target="_blank" rel="noopener noreferrer" aria-label="Youtube">
+    <YoutubeIcon />
+</a>
+
+// After:
+<a href="https://www.youtube.com/@YourChannel" target="_blank" rel="noopener noreferrer" aria-label="Youtube">
+    <YoutubeIcon />
+</a>
+```
+
+#### Step 4: Update the Email/Newsletter Link
+
+Modify the `href` attribute in the email/newsletter link (around lines 91-99):
+
+**For a mailto link:**
+```jsx
+<a
+    href="mailto:support@yourplatform.org"
+    target="_blank"
+    rel="noopener noreferrer"
+    className={`px-2`}
+    aria-label="Link to Sign Up for Newsletter"
+>
+    <MailIcon />
+</a>
+```
+
+**For a newsletter signup page:**
+```jsx
+<a
+    href="https://yourplatform.org/newsletter"
+    target="_blank"
+    rel="noopener noreferrer"
+    className={`px-2`}
+    aria-label="Link to Sign Up for Newsletter"
+>
+    <MailIcon />
+</a>
+```
+
+#### Step 5: Rebuild and Redeploy
+
+- After making changes, rebuild the frontend application
+- Redeploy to your environment for changes to take effect
+
+### Complete Example
+
+```jsx
+<Row className={classes.socialText}>
+    <div>Connect with Us:</div>
+    <a href="https://www.youtube.com/@YourResearchChannel" target="_blank" rel="noopener noreferrer" aria-label="Youtube">
+        <YoutubeIcon />
+    </a>
+    <a
+        href="mailto:contact@yourresearchplatform.org"
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`px-2`}
+        aria-label="Email Us"
+    >
+        <MailIcon />
+    </a>
+</Row>
+```
+
+**Note:** You can also update the `aria-label` attribute to provide a more descriptive label for accessibility purposes.
+
+---
+
+## Resource Center
+
+### Overview
 
 The Resource Center displays informational cards organized into tabbed categories. Each tab contains cards relevant to different user groups or content types. The Redwood includes four tabs:
 
@@ -27,9 +225,9 @@ The Resource Center displays informational cards organized into tabbed categorie
 
 Each category tab (General, For Researchers, For Submitters) has its own component file, color scheme, and icon. The "All" tab automatically aggregates cards from all categories and does not require a separate file.
 
-## File Locations
+### File Locations
 
-### Card Component Files
+#### Card Component Files
 
 Each category tab has a dedicated card component file:
 
@@ -42,14 +240,14 @@ Each category tab has a dedicated card component file:
 
 **Note:** The "All" tab automatically displays cards from all category tabs combined. You do not need to edit or create a separate file for the "All" tab - it automatically updates when you add or modify cards in any category tab.
 
-### Main Resource Center File
+#### Main Resource Center File
 
 The main component that coordinates all tabs:
 ```
 datahub-ui-main/views/ResourceCenter/ResourceCenter.jsx
 ```
 
-### Styling
+#### Styling
 
 ```
 datahub-ui-main/views/ResourceCenter/ResourceCenter.module.scss
@@ -57,9 +255,9 @@ datahub-ui-main/views/ResourceCenter/ResourceCenter.module.scss
 
 ---
 
-## Card Types and Categories
+### Card Types and Categories
 
-### The "All" Tab
+#### The "All" Tab
 
 The "All" tab is a special tab that automatically aggregates and displays cards from all other category tabs. It is defined in the main `ResourceCenter.jsx` file:
 
@@ -73,7 +271,7 @@ const allCards = (router, baseUrl) => {
 };
 ```
 
-### Card Structure
+#### Card Structure
 
 Each card is a JavaScript object defined in its respective card component file (`GeneralCards.jsx`, `ForResearchersCards.jsx`, or `ForSubmittersCards.jsx`).
 
@@ -96,7 +294,7 @@ Each card is a JavaScript object defined in its respective card component file (
 }
 ```
 
-### How Category Tabs Are Defined
+#### How Category Tabs Are Defined
 
 Each category tab is imported and used in the main `ResourceCenter.jsx` file. Here's how they are structured:
 
@@ -134,27 +332,27 @@ import { forSubmittersCards } from './Components/ForSubmittersCards';
 
 ---
 
-## Editing Existing Cards
+### Editing Existing Cards
 
-### Step 1: Identify the Tab
+#### Step 1: Identify the Tab
 
 Determine which tab contains the card you want to edit:
 - **General tab** → `GeneralCards.jsx`
 - **For Researchers tab** → `ForResearchersCards.jsx`
 - **For Submitters tab** → `ForSubmittersCards.jsx`
 
-### Step 2: Open the File
+#### Step 2: Open the File
 
 Navigate to and open the appropriate file:
 ```
 datahub-ui-main/views/ResourceCenter/Components/[CardFileName].jsx
 ```
 
-### Step 3: Locate the Card
+#### Step 3: Locate the Card
 
 Find the card you want to edit in the exported function. Cards are stored in an array (typically starting around line 21).
 
-### Step 4: Modify the Content
+#### Step 4: Modify the Content
 
 **Example - Editing the "News" card in General tab:**
 
@@ -187,23 +385,23 @@ Find the card you want to edit in the exported function. Cards are stored in an 
 ```
 ---
 
-## Adding New Cards to Existing Tabs
+### Adding New Cards to Existing Tabs
 
-### Step 1: Choose the Target Tab
+#### Step 1: Choose the Target Tab
 
 Decide which tab should contain your new card:
 - **General** - Platform information, news, events, FAQs
 - **For Researchers** - Data access, analysis tools, tutorials
 - **For Submitters** - Submission guides, data standards, templates
 
-### Step 2: Open the Appropriate File
+#### Step 2: Open the Appropriate File
 
 Open the corresponding file:
 ```
 datahub-ui-main/views/ResourceCenter/Components/[CardFileName].jsx
 ```
 
-### Step 3: Add the Card Object
+#### Step 3: Add the Card Object
 
 Add a new card object to the array. Use the template matching your chosen tab:
 
@@ -285,11 +483,11 @@ Add a new card object to the array. Use the template matching your chosen tab:
 },
 ```
 
-### Step 4: Position the Card
+#### Step 4: Position the Card
 
 Decide where in the array to place your card. Cards display in the order they appear. Add your card object with a comma after the previous card.
 
-### Step 5: Complete Example
+#### Step 5: Complete Example
 
 Adding a "Data Access Request" card to the For Researchers tab:
 
@@ -344,11 +542,11 @@ Adding a "Data Access Request" card to the For Researchers tab:
 
 ---
 
-## Creating a New Tab
+### Creating a New Tab
 
 To add an entirely new tab to the Resource Center, follow these steps:
 
-### Step 1: Create a New Card Component File
+#### Step 1: Create a New Card Component File
 
 1. Navigate to `datahub-ui-main/views/ResourceCenter/Components/`
 2. Create a new file (e.g., `ForPartnersCards.jsx`)
@@ -410,7 +608,7 @@ forPartnersCards.PropTypes = {
 };
 ```
 
-### Step 2: Update ResourceCenter.jsx
+#### Step 2: Update ResourceCenter.jsx
 
 Open `datahub-ui-main/views/ResourceCenter/ResourceCenter.jsx` and make the following changes:
 
@@ -562,7 +760,7 @@ const icons = {
 </Tabs>
 ```
 
-### Step 3: (Optional) Add Custom Color
+#### Step 3: (Optional) Add Custom Color
 
 If you want a new color scheme not already available, add it to the SCSS file:
 
@@ -570,9 +768,9 @@ Open `datahub-ui-main/views/ResourceCenter/ResourceCenter.module.scss` and add y
 
 ---
 
-## Button Types
+### Button Types
 
-### 1. Navigation Button (Internal Link)
+#### 1. Navigation Button (Internal Link)
 
 Links to another page within the application:
 
@@ -588,7 +786,7 @@ Links to another page within the application:
 </Link>
 ```
 
-### 2. Download Button
+#### 2. Download Button
 
 Triggers a file download:
 
@@ -610,7 +808,7 @@ Triggers a file download:
 />
 ```
 
-### 3. Multiple Buttons
+#### 3. Multiple Buttons
 
 Cards can have both navigation and download buttons:
 
@@ -644,7 +842,7 @@ footer: (
 )
 ```
 
-### 4. Right-Aligned Button
+#### 4. Right-Aligned Button
 
 For single download button aligned to the right:
 
@@ -670,9 +868,9 @@ footer: (
 
 ---
 
-## Examples
+### Examples
 
-### Example 1: Simple Information Card (General Tab)
+#### Example 1: Simple Information Card (General Tab)
 
 ```javascript
 // In GeneralCards.jsx
@@ -703,7 +901,7 @@ footer: (
 },
 ```
 
-### Example 2: Card with Download Only (For Submitters Tab)
+#### Example 2: Card with Download Only (For Submitters Tab)
 
 ```javascript
 // In ForSubmittersCards.jsx
@@ -745,7 +943,7 @@ footer: (
 },
 ```
 
-### Example 3: Card with Both Buttons (For Researchers Tab)
+#### Example 3: Card with Both Buttons (For Researchers Tab)
 
 ```javascript
 // In ForResearchersCards.jsx
@@ -790,7 +988,7 @@ footer: (
 },
 ```
 
-### Example 4: Card with Rich Content (General Tab)
+#### Example 4: Card with Rich Content (General Tab)
 
 ```javascript
 // In GeneralCards.jsx
@@ -826,7 +1024,7 @@ footer: (
 },
 ```
 
-### Example 5: Card with External Link (For Researchers Tab)
+#### Example 5: Card with External Link (For Researchers Tab)
 
 ```javascript
 // In ForResearchersCards.jsx
@@ -859,9 +1057,9 @@ footer: (
 
 ---
 
-## Quick Reference
+### Quick Reference
 
-### Card Type Summary
+#### Card Type Summary
 
 | Tab | File | Type Value | Button Color | Icon |
 |-----|------|------------|--------------|------|
@@ -872,7 +1070,7 @@ footer: (
 
 **Important:** The "All" tab is automatically populated by combining cards from all category tabs. When you add or edit cards in any category, they will automatically appear in the "All" tab.
 
-### Common Tasks Quick Links
+#### Common Tasks Quick Links
 
 - **Edit existing card:** Find the card in its tab's file → Modify title/content/footer → Save → Build
 - **Add new card:** Choose tab → Open file → Add card object → Save → Build
@@ -884,9 +1082,9 @@ footer: (
 
 ## Related Documentation
 
-- [Platform Limitations](./PLATFORM_LIMITATIONS.md) - Understanding platform constraints and architectural decisions
+- [Platform Limitations](./LIMITATIONS.md) - Understanding platform constraints and architectural decisions
 - [Deployment Guide](./DEPLOYMENT_GUIDE.md) - Full platform deployment instructions
-- [README](./README.md) - Platform overview and setup
+- [README](../README.md) - Platform overview and setup
 
 ---
 

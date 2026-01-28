@@ -280,25 +280,31 @@ VALUES (6, 'video', NULL);
 
 **Current Implementation:**
 
-On the Redwood website, the **Helpful Information → Resource Center** section displays content as cards grouped into predefined categories: General, For Researchers, and For Submitters. The content of the cards is **hardcoded directly in the frontend codebase**. This means:
+Several frontend UI elements in Redwood are **hardcoded directly in the frontend codebase** rather than managed through a database or admin interface. This includes:
 
-- Card content, titles, descriptions, and buttons are defined in JSX files
-- Changes require editing JavaScript/React component files
-- Updates require rebuilding and redeploying the frontend application
-- No admin interface exists for managing these cards
+- **Resource Center** - Cards grouped into predefined categories (General, For Researchers, For Submitters)
+- **Homepage Footer Links** - Related Websites and Website Policies columns
+- **Footer Social Media Links** - YouTube and Email/Newsletter icons in "Connect with Us" section
+- Other frontend-managed components
 
-**Editing cards and categories:**
+These elements require:
+- Direct editing of JavaScript/React component files and JSX
+- Rebuilding and redeploying the frontend application after changes
+- No admin interface for management
 
-At present, there is no UI-based admin interface for editing cards or managing categories. To add, modify, or remove cards or categories, changes must be made directly in the frontend code.
+**Editing frontend UI elements:**
 
-For detailed implementation steps and examples, refer to: [Resource Center Customization Guide](./RESOURCE_CENTER_CUSTOMIZATION.md)
+At present, there is no UI-based admin interface for editing these components. To add, modify, or remove content, changes must be made directly in the frontend code.
+
+For detailed implementation steps, examples, and file locations, refer to: [Frontend Content Customization Guide](./FRONTEND_CONTENT_CUSTOMIZATION_GUIDE.md)
 
 ---
 
 ## Related Documentation
 
-- [Resource Center Customization Guide](./RESOURCE_CENTER_CUSTOMIZATION.md) - Detailed guide for editing Resource Center cards
+- [Frontend Content Customization Guide](./FRONTEND_CONTENT_CUSTOMIZATION_GUIDE.md) - Detailed guide for editing Resource Center cards, homepage footer links, social media links, and other frontend UI elements
 - [Deployment Guide](./DEPLOYMENT_GUIDE.md) - Platform deployment instructions
+
 ---
 
 **Last Updated:** January 2026  
