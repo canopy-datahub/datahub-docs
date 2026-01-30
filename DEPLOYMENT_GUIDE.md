@@ -168,6 +168,8 @@ ls -la
 ### Step 1: Install and Configure AWS CLI
 **Time:** 10 minutes
 
+You need to install the AWS CLI and have an IAM user with the required permissions set up so you can run AWS commands from your machine.
+
 #### Step 1a: Install AWS CLI
 ```bash
 # For MacOS:
@@ -251,6 +253,7 @@ cd ~/dataHub/datahub-cloud-replication
 nano parameters-${ENV}.json  
 
 # edit your `ProjectName` parameter
+# important: use lowercase only, as this value will also be used in s3 bucket names, which only allow lowercase
 
 # save it in the environment variable
 export PROJECT_NAME=$(cat parameters-${ENV}.json | grep -o '"ProjectName": "[^"]*"' | cut -d'"' -f4)
@@ -305,7 +308,7 @@ aws cloudformation describe-stacks \
 
 Creates S3 buckets for data files, metadata files, data dictionary files and lambda functions code.
 
-#### 1. Configure DataHubUniqueId for S3 Buckets 
+#### step 4a. Configure DataHubUniqueId for S3 Buckets 
 
 S3 bucket names must be globally unique. Update the `DataHubUniqueId` parameter:
 
@@ -316,6 +319,7 @@ cd ~/dataHub/datahub-cloud-replication
 nano parameters-${ENV}.json  
 
 # edit your `DataHubUniqueId` parameter
+# important: use lowercase only, as this value will also be used in s3 bucket names, which only allow lowercase
 
 # save it in the environment variable
 export DataHubUniqueId=$(cat parameters-${ENV}.json | grep -o '"DataHubUniqueId": "[^"]*"' | cut -d'"' -f4)
@@ -335,7 +339,7 @@ echo "DataHubUniqueId: $DataHubUniqueId"
 - `${PROJECT_NAME}-default-{DataHubUniqueId}-{ENV}`
 - `${PROJECT_NAME}-lambda-artifacts-{DataHubUniqueId}-{ENV}`
 
-#### 2. Deploy into AWS
+#### Step 4b. Deploy into AWS
 ```bash
 aws cloudformation deploy \
   --stack-name ${PROJECT_NAME}-S3-${ENV} \
@@ -350,7 +354,7 @@ aws cloudformation deploy \
 
 ✅ **Verify:** 
 ```bash
-aws s3 ls | grep ${PROJECT_NAME}-${DataHubUniqueId}-${ENV}
+aws s3 ls | grep ${PROJECT_NAME}
 ```
 **Expected:** Should list 5 buckets
 
@@ -374,10 +378,10 @@ aws cloudformation deploy \
 ✅ **Verify:** Get ALB DNS name
 ```bash
 aws elbv2 describe-load-balancers \
-  --query 'LoadBalancers[?contains(LoadBalancerName, `datahub`)].DNSName' \
+  --query "LoadBalancers[?contains(LoadBalancerName, \`${PROJECT_NAME}\`)].DNSName" \
   --output text
 ```
-**Expected:** DNS name like `datahub-alb-dev-123456789.us-east-1.elb.amazonaws.com`
+**Expected:** DNS name like `${PROJECT_NAME}-alb-${ENV}-123456789.us-east-1.elb.amazonaws.com`
 
 ---
 
