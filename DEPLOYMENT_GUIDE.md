@@ -155,12 +155,13 @@ git clone https://github.com/bmir-datahub/datahub-service-download.git
 git clone https://github.com/bmir-datahub/datahub-service-email.git
 git clone https://github.com/bmir-datahub/datahub-lib-keycloak-auth.git
 git clone https://github.com/bmir-datahub/datahub-ui-main.git
+git clone https://github.com/bmir-datahub/datahub-deployment-scripts.git
 
 # Verify all repositories are cloned
 ls -la
 ```
 
-✅ **Verify:** You should see 11 directories in `~/dataHub/`
+✅ **Verify:** You should see 12 directories in `~/dataHub/`
 
 ---
 
@@ -1131,7 +1132,7 @@ pip install -r requirements-deploy.txt
 The `deploy.py` script automates the entire build and deployment process for each service:
 
 ```bash
-cd ~/dataHub
+cd ~/dataHub/datahub-deployment-scripts
 
 # Usage: python deploy.py <project-name> <service-name> <environment> [image-tag]
 # project-name,  service-name and environment are required, while image-tag is optioanl
