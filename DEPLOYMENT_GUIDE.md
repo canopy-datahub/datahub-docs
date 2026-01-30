@@ -211,7 +211,7 @@ unset AWS_SESSION_TOKEN
 
 # Now set the profile and region
 export AWS_PROFILE=datahub-rep
-export AWS_DEFAULT_REGION=us-east-1
+export AWS_REGION=us-east-1
 ```
 
 ✅ **Verify:** Test AWS connectivity
@@ -257,13 +257,13 @@ export PROJECT_NAME=$(cat parameters-${ENV}.json | grep -o '"ProjectName": "[^"]
 
 # Set AWS profile and region
 export AWS_PROFILE=datahub-rep
-export AWS_DEFAULT_REGION=us-east-1
+export AWS_REGION=us-east-1
 
 # Verify settings
 echo "Environment: $ENV"
 echo "ProjectName: $PROJECT_NAME"
 echo "AWS Profile: $AWS_PROFILE"
-echo "AWS Region: $AWS_DEFAULT_REGION"
+echo "AWS Region: $AWS_REGION"
 ```
 ##### 💡 **Tip:** Add these to your `~/.bashrc` or `~/.zshrc` to persist across sessions.
 ---
@@ -285,7 +285,6 @@ aws cloudformation deploy \
   --template-file modules/Networking.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
@@ -343,7 +342,6 @@ aws cloudformation deploy \
   --template-file modules/S3.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
@@ -369,7 +367,6 @@ aws cloudformation deploy \
   --template-file modules/LoadBalancer.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
@@ -412,7 +409,6 @@ aws cloudformation deploy \
   --template-file modules/RDS.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
@@ -503,7 +499,6 @@ aws cloudformation deploy \
   --template-file modules/Route53.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
@@ -525,7 +520,6 @@ aws cloudformation deploy \
   --template-file modules/CloudWatch.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
@@ -548,7 +542,6 @@ aws cloudformation deploy \
   --template-file modules/SQS.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
@@ -566,7 +559,6 @@ aws cloudformation deploy \
   --template-file modules/ECR.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
@@ -619,7 +611,6 @@ aws cloudformation deploy \
   --template-file modules/OpenSearch.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
@@ -650,7 +641,6 @@ aws cloudformation deploy \
   --template-file modules/SecretsManager.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
@@ -805,7 +795,6 @@ aws cloudformation deploy \
   --template-file modules/Lambda.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
@@ -852,7 +841,6 @@ aws cloudformation deploy \
   --template-file modules/ECS.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
@@ -912,7 +900,6 @@ aws cloudformation deploy \
   --template-file modules/SES.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
@@ -931,7 +918,7 @@ Verify email identities for SES (required for sending emails).
 In sandbox mode, both sender AND recipient emails must be verified:
 
 **Verify via AWS Console:**
-1. Go to AWS Console → SES → Verified identities (in `${AWS_DEFAULT_REGION}`)
+1. Go to AWS Console → SES → Verified identities (in `${AWS_REGION}`)
 2. Click on each email identity
 3. Click "Verify" button
 4. Check email inbox for verification link
@@ -952,7 +939,6 @@ Request to move out of sandbox mode:
 ```bash
 aws ses get-identity-verification-attributes \
   --identities datahub@stanford.edu \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --query 'VerificationAttributes.*.VerificationStatus' \
   --output text
@@ -972,7 +958,6 @@ aws cloudformation deploy \
   --template-file modules/EventBridge.yaml \
   --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
@@ -1016,7 +1001,6 @@ aws secretsmanager create-secret \
   --name "SFTP/${PROJECT_NAME}-user" \
   --description "${PROJECT_NAME} Transfer Family SFTP User" \
   --secret-string file://sftp-user-secret.json \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags Key=projectname,Value=${PROJECT_NAME} Key=environment,Value=${ENV}
 
@@ -1034,7 +1018,6 @@ For a static SFTP endpoint address:
 # Allocate an Elastic IP
 aws ec2 allocate-address \
   --domain vpc \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tag-specifications 'ResourceType=elastic-ip,Tags=[{Key=Name,Value='${PROJECT_NAME}'-sftp-'${ENV}'},{Key=projectname,Value='${PROJECT_NAME}'},{Key=environment,Value='${ENV}'}]'
 
@@ -1051,7 +1034,6 @@ aws cloudformation deploy \
     file://parameters-${ENV}.json \
     ElasticIPAllocationId=<YOUR_ELASTIC_IP_ALLOCATION_ID> \
   --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
@@ -1069,13 +1051,12 @@ aws cloudformation deploy \
 ```bash
 # Get the server ID
 SERVER_ID=$(aws transfer list-servers \
-  --region ${AWS_DEFAULT_REGION} \
   --profile ${AWS_PROFILE} \
   --query 'Servers[?Tags[?Key==`projectname` && Value==`'${PROJECT_NAME}'`]].ServerId' \
   --output text)
 
 # Get the endpoint
-echo "SFTP Endpoint: ${SERVER_ID}.server.transfer.${AWS_DEFAULT_REGION}.amazonaws.com"
+echo "SFTP Endpoint: ${SERVER_ID}.server.transfer.${AWS_REGION}.amazonaws.com"
 ```
 
 **Expected:** Server ID should be returned (format: `s-1234567890abcdef0`)
@@ -1086,7 +1067,7 @@ Test the SFTP connection:
 
 ```bash
 # Test SFTP connection
-sftp ${PROJECT_NAME}-user@${SERVER_ID}.server.transfer.${AWS_DEFAULT_REGION}.amazonaws.com
+sftp ${PROJECT_NAME}-user@${SERVER_ID}.server.transfer.${AWS_REGION}.amazonaws.com
 # Enter the password you configured in the secret
 
 # Once connected, verify your home directory
