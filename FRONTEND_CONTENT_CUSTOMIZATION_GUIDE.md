@@ -1,4 +1,4 @@
-# Frontend UI Customization Guide
+# Frontend Customization Guide
 
 This guide explains how to customize various frontend UI elements in Redwood that are hardcoded in the codebase, including the Resource Center, homepage footer links, and other frontend-managed components.
 

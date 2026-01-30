@@ -202,13 +202,24 @@ region=us-east-1
 output=json
 EOL
 ```
+*IMPORTANT: Unset any existing AWS credentials from environment*
+```bash
+unset AWS_ACCESS_KEY_ID=
+unset AWS_SECRET_ACCESS_KEY=
+unset AWS_SESSION_TOKEN=
+
+# Now set the profile and region
+export AWS_PROFILE=datahub-rep
+export AWS_DEFAULT_REGION=us-east-1
+```
 
 ✅ **Verify:** Test AWS connectivity
 ```bash
-aws sts get-caller-identity --profile datahub-rep
+aws sts get-caller-identity
 ```
 
 **Expected output:** Should show your AWS account ID, user ARN, and user ID.
+*Please make sure you are using the correst aws profile*
 
 #### Step 1c: Grant IAM Permissions
 
@@ -644,8 +655,11 @@ aws cloudformation deploy \
 ```
 
 ✅ **Verify:** Check secret was created
+
+The application secret is named **`${PROJECT_NAME}_application_${ENV}`** (e.g., `datahub_application_dev`). ECS task definitions set the **`AWS_SECRET_NAME`** environment variable to this value so backend services load the correct secret via `spring.config.import: aws-secretsmanager:${AWS_SECRET_NAME}`. For a duplicate deployment in the same account, use a different `ProjectName` so each app has its own secret.
+
 ```bash
-aws secretsmanager describe-secret --secret-id application_${ENV}
+aws secretsmanager describe-secret --secret-id ${PROJECT_NAME}_application_${ENV}
 ```
 
 ---
@@ -1347,7 +1361,11 @@ aws opensearch describe-domain --domain-name ${PROJECT_NAME}-opensearch-${ENV} \
 
 **⚠️ WARNING:** This will delete ALL resources and data. Make sure you have backups!
 
-### Step 1: Empty S3 Buckets
+### Step 1: Empty Containers
+
+Before deleting the stack, empty S3 buckets, RDS, and ECR so CloudFormation can remove these resources.
+
+#### Step 1a: Empty S3 Buckets
 
 S3 buckets with content cannot be deleted by CloudFormation:
 
@@ -1359,6 +1377,37 @@ aws s3 ls | grep ${PROJECT_NAME}-${DataHubUniqueId}-${ENV}
 aws s3 ls | grep ${PROJECT_NAME}-${DataHubUniqueId}-${ENV} | awk '{print $3}' | while read bucket; do
   echo "Emptying bucket: $bucket"
   aws s3 rm s3://$bucket --recursive
+done
+```
+
+#### Step 1b: Empty RDS
+
+Disable deletion protection on the RDS instance so the stack can delete it. If your RDS instance has a final snapshot or other retention settings that block deletion, adjust or remove them.
+
+```bash
+# List RDS instances for this project
+aws rds describe-db-instances --query "DBInstances[?contains(DBInstanceIdentifier, '${PROJECT_NAME}')].DBInstanceIdentifier" --output text
+
+# Disable deletion protection (replace INSTANCE_ID with your RDS instance identifier)
+aws rds modify-db-instance \
+  --db-instance-identifier ${PROJECT_NAME}-${DataHubUniqueId}-${ENV}-postgres \
+  --no-deletion-protection \
+  --apply-immediately
+```
+
+If the stack still cannot delete RDS (e.g., due to automated snapshots), you may need to delete the DB instance manually first, then delete the stack.
+
+#### Step 1c: Empty ECR
+
+ECR repositories with images cannot be deleted by CloudFormation. Delete all images in each repository:
+
+```bash
+# List all DataHub ECR repositories
+aws ecr describe-repositories --query "repositories[?contains(repositoryName, '${PROJECT_NAME}')].repositoryName" --output text
+
+for repo in $(aws ecr describe-repositories --query "repositories[?contains(repositoryName, '${PROJECT_NAME}')].repositoryName" --output text); do
+  echo "Emptying ECR repository: $repo"
+  aws ecr batch-delete-image --repository-name $repo --image-ids $(aws ecr list-images --repository-name $repo --query 'imageIds[*]' --output json) 2>/dev/null || true
 done
 ```
 
@@ -1390,10 +1439,10 @@ for stack in "${stacks[@]}"; do
   echo "Waiting for $stack deletion to complete..."
   aws cloudformation wait stack-delete-complete --stack-name $stack
   
-  echo "✅ $stack deleted successfully"
+  echo "$stack deleted successfully"
 done
 
-echo "🎉 Cleanup complete!"
+echo "Cleanup complete!"
 ```
 
 ### Step 3: Verify Cleanup
