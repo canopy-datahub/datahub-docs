@@ -205,9 +205,9 @@ EOL
 ```
 *IMPORTANT: Unset any existing AWS credentials from environment*
 ```bash
-unset AWS_ACCESS_KEY_ID=
-unset AWS_SECRET_ACCESS_KEY=
-unset AWS_SESSION_TOKEN=
+unset AWS_ACCESS_KEY_ID
+unset AWS_SECRET_ACCESS_KEY
+unset AWS_SESSION_TOKEN
 
 # Now set the profile and region
 export AWS_PROFILE=datahub-rep
@@ -229,7 +229,7 @@ The IAM user performing the deployment must have permissions for the following A
 ```bash
 # Change to your own user name below
 aws iam attach-user-policy \
-  --user-name datahub-dev \ 
+  --user-name datahub-dev \
   --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
 ```
 ---
