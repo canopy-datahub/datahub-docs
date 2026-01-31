@@ -425,7 +425,7 @@ aws rds describe-db-instances \
   --query "DBInstances[?DBInstanceIdentifier==\`${PROJECT_NAME}-postgresql-${ENV}\`].Endpoint.Address" \
   --output text
 ```
-#### **Expected:** Endpoint like `datahub-postgres-dev.abc123.us-east-1.rds.amazonaws.com`
+#### **Expected:** Endpoint like `${PROJECT_NAME}-postgresql-${ENV}.abc123.us-east-1.rds.amazonaws.com`
 ---
 
 ### Step 7: Setup Database Schema
@@ -530,7 +530,7 @@ aws cloudformation deploy \
 
 ✅ **Verify:** List log groups
 ```bash
-aws logs describe-log-groups --query 'logGroups[?contains(logGroupName, `datahub`)].logGroupName'
+aws logs describe-log-groups --query "logGroups[?contains(logGroupName, \`${PROJECT_NAME}\`)].logGroupName"
 ```
 
 ---
@@ -579,7 +579,7 @@ aws cloudformation deploy \
 
 ✅ **Verify:** List ECR repositories
 ```bash
-aws ecr describe-repositories --query 'repositories[?contains(repositoryName, `datahub`)].repositoryName'
+aws ecr describe-repositories --query "repositories[?contains(repositoryName, \`${PROJECT_NAME}\`)].repositoryName"
 ```
 
 ---
@@ -818,7 +818,7 @@ aws cloudformation deploy \
 
 ✅ **Verify:** Check Lambda functions exist
 ```bash
-aws lambda list-functions --query 'Functions[?contains(FunctionName, `DataHub`)].FunctionName'
+aws lambda list-functions --query "Functions[?contains(FunctionName, \`${PROJECT_NAME}\`)].FunctionName"
 ```
 
 #### Test OpenSearch Lambda (Optional)
@@ -1225,7 +1225,7 @@ Test that the application is accessible and functioning:
 ```bash
 # Get ALB DNS name
 ALB_DNS=$(aws elbv2 describe-load-balancers \
-  --query 'LoadBalancers[?contains(LoadBalancerName, `datahub`)].DNSName' \
+  --query "LoadBalancers[?contains(LoadBalancerName, \`${PROJECT_NAME}\`)].DNSName" \
   --output text)
 
 echo "Application URL: http://$ALB_DNS"
@@ -1313,7 +1313,7 @@ aws logs tail /aws/lambda/${PROJECT_NAME}-OpenSearchRefresh-${ENV} --follow
 
 ```bash
 # Test connection from your machine
-psql -h $RDS_ENDPOINT -U datahub_user -d datahub_${ENV}
+psql -h $RDS_ENDPOINT -U datahub_user -d ${PROJECT_NAME}_${ENV}
 ```
 
 #### OpenSearch Connection Issues
@@ -1436,14 +1436,14 @@ echo "Cleanup complete!"
 ```bash
 # Check for remaining stacks
 aws cloudformation list-stacks \
-  --query 'StackSummaries[?contains(StackName, `DataHub`) && StackStatus != `DELETE_COMPLETE`].{Name:StackName,Status:StackStatus}' \
+  --query "StackSummaries[?contains(StackName, \`${PROJECT_NAME}\`) && StackStatus != \`DELETE_COMPLETE\`].{Name:StackName,Status:StackStatus}" \
   --output table
 
 # Check for remaining S3 buckets
-aws s3 ls | grep datahub
+aws s3 ls | grep ${PROJECT_NAME}
 
 # Check for remaining ECR repositories
-aws ecr describe-repositories --query 'repositories[?contains(repositoryName, `datahub`)].repositoryName'
+aws ecr describe-repositories --query "repositories[?contains(repositoryName, \`${PROJECT_NAME}\`)].repositoryName"
 ```
 
 ---
