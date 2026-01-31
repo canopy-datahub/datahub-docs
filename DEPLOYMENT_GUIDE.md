@@ -399,7 +399,7 @@ Before deploying, add your local IP to allow database connection for schema setu
 curl -4 ifconfig.me
 ```
 
-Edit [RDS.yaml](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/RDS.yaml) at line 153:
+Edit [RDS.yaml](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/RDS.yaml) at line 157:
 ```yaml
 - CidrIp: "YOUR_PUBLIC_IP/32"  # Replace with your IP from above
   Description: "Your workstation"
@@ -422,7 +422,7 @@ aws cloudformation deploy \
 ✅ **Verify:** Get RDS endpoint
 ```bash
 aws rds describe-db-instances \
-  --query 'DBInstances[?DBInstanceIdentifier==`${PROJECT_NAME}-postgres-'${ENV}'`].Endpoint.Address' \
+  --query "DBInstances[?DBInstanceIdentifier==\`${PROJECT_NAME}-postgresql-${ENV}\`].Endpoint.Address" \
   --output text
 ```
 #### **Expected:** Endpoint like `datahub-postgres-dev.abc123.us-east-1.rds.amazonaws.com`
@@ -482,7 +482,7 @@ python deploy_to_rds.py --project-name ${PROJECT_NAME} --env dev --region us-eas
 
 After database deployment, update the [secret](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/SecretsManager.yaml) with RDS credentials.
 
-⚠️ **Note:** Step 6 will display the RDS endpoint. Use that endpoint to update `host` value in Secrets Manager (see detailed guide below).
+⚠️ **Note:** Step 6 will display the RDS endpoint. Use that endpoint to update `host` value in Secrets Manager (see detailed guide above).
 
 
 
