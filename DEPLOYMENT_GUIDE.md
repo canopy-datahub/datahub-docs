@@ -625,7 +625,7 @@ aws cloudformation deploy \
 ```bash
 aws opensearch describe-domain \
   --domain-name ${PROJECT_NAME}-opensearch-${ENV} \
-  --query 'DomainStatus.Endpoint' \
+  --query 'DomainStatus.Endpoints.vpc' \
   --output text
 ```
 **Expected:** Endpoint like `vpc-datahub-opensearch-dev-abc123.us-east-1.es.amazonaws.com`
