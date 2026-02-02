@@ -714,6 +714,8 @@ docker info
 cd ~/dataHub/datahub-development/opensearch/opensearch_reindex
 
 # Create Lambda layer with ARM64-compatible dependencies
+python create_layer.py [layer-name] [region] [profile]
+# For example:
 python create_layer.py dependency-layer us-east-1 datahub-rep
 ```
 
@@ -725,13 +727,13 @@ python create_layer.py dependency-layer us-east-1 datahub-rep
 
 ⏳ **Wait time:** 3-5 minutes (Docker build + upload)
 
-✅ **Verify:** Note the Layer ARN from the output
+✅ **Verify:** Note the Layer ARN from the output, such as:
 ```
 Layer ARN:
   arn:aws:lambda:us-east-1:123456789012:layer:dependency-layer:1
 ```
 
-**⚠️ Important:** Ensure this ARN matches what's in `datahub-cloud-replication/modules/Lambda.yaml` at line 272. If different, update [Lambda.yaml](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/Lambda.yaml) with the new ARN.
+**⚠️ Important:** Ensure this ARN matches what's in `datahub-cloud-replication/modules/Lambda.yaml` at line 274. If different, update [Lambda.yaml](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/Lambda.yaml) with the new ARN.
 
 ---
 
@@ -796,7 +798,11 @@ mvn clean package -DskipTests
 aws s3 cp target/datahub-service-email-0.0.1-SNAPSHOT-aws.jar \
   s3://${PROJECT_NAME}-lambda-artifacts-${DataHubUniqueId}-${ENV}/email-service/
 ```
-
+✅ **Verify:** Check S3 upload
+```bash
+aws s3 ls s3://${PROJECT_NAME}-lambda-artifacts-${DataHubUniqueId}-${ENV}/email-service/
+```
+**Expected:** Should show `datahub-service-email-0.0.1-SNAPSHOT-aws.jar`
 ---
 
 ### Step 16: Deploy Lambda Stack
