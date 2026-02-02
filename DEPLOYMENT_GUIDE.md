@@ -334,7 +334,7 @@ echo "DataHubUniqueId: $DataHubUniqueId"
 
 **Bucket names that will be created:**
 - `${PROJECT_NAME}-upload-portal-{DataHubUniqueId}-{ENV}`
-- `sftp-${PROJECT_NAME}-{DataHubUniqueId}-{ENV}`
+- `${PROJECT_NAME}sftp--{DataHubUniqueId}-{ENV}`
 - `${PROJECT_NAME}-review-{DataHubUniqueId}-{ENV}`
 - `${PROJECT_NAME}-default-{DataHubUniqueId}-{ENV}`
 - `${PROJECT_NAME}-lambda-artifacts-{DataHubUniqueId}-{ENV}`
