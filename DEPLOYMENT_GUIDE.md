@@ -883,16 +883,6 @@ aws cloudformation deploy \
 ✅ **Verify:** Check ECS services are running
 ```bash
 aws ecs list-services --cluster ${PROJECT_NAME}-Services-${ENV}
-
-# Check running tasks
-aws ecs describe-services \
-  --cluster ${PROJECT_NAME}-Services-${ENV} \
-  --services $(aws ecs list-services --cluster ${PROJECT_NAME}-Services-${ENV} --query 'serviceArns' --output text) \
-  --query 'services[*].{Name:serviceName,Running:runningCount,Desired:desiredCount}'
-```
-
-**Expected:** All services should show `Running: 1, Desired: 1`
-
 ---
 
 ### Step 18: Deploy SES Stack
