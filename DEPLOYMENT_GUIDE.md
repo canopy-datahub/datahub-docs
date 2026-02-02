@@ -701,7 +701,16 @@ Lambda layers separate dependencies from code, enabling faster deployments.
 
 #### Create the Layer
 
+**Ensure Docker is running** (required for ARM64 layer build):
+
 ```bash
+# macOS: open Docker Desktop if installed (or start Docker from Applications)
+open -a Docker
+
+# Wait for Docker to finish starting (whale icon in menu bar), then verify:
+docker info
+
+# Navigate to python script folder 
 cd ~/dataHub/datahub-development/opensearch/opensearch_reindex
 
 # Create Lambda layer with ARM64-compatible dependencies
