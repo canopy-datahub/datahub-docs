@@ -630,6 +630,12 @@ aws opensearch describe-domain \
 ```
 **Expected:** Endpoint like `vpc-datahub-opensearch-dev-abc123.us-east-1.es.amazonaws.com`
 
+#### Post-Deployment: Update Secrets Manager
+
+After OpenSearch stack deployment, update the [secret](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/SecretsManager.yaml) with OpenSearch endpoint.
+
+⚠️ **Note:** Step 12b will display the OpenSearch endpoint. Use that endpoint to update `SEARCH_HOST` value in Secrets Manager.
+
 ---
 
 ### Step 13: Deploy SecretsManager Stack
@@ -650,8 +656,6 @@ aws cloudformation deploy \
 ```
 
 ✅ **Verify:** Check secret was created
-
-The application secret is named **`${PROJECT_NAME}_application_${ENV}`** (e.g., `datahub_application_dev`). ECS task definitions set the **`AWS_SECRET_NAME`** environment variable to this value so backend services load the correct secret via `spring.config.import: aws-secretsmanager:${AWS_SECRET_NAME}`. For a duplicate deployment in the same account, use a different `ProjectName` so each app has its own secret.
 
 ```bash
 aws secretsmanager describe-secret --secret-id ${PROJECT_NAME}_application_${ENV}
