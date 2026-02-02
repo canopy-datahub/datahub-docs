@@ -383,6 +383,15 @@ aws elbv2 describe-load-balancers \
 ```
 **Expected:** DNS name like `${PROJECT_NAME}-alb-${ENV}-123456789.us-east-1.elb.amazonaws.com`
 
+#### Post-deployment: Set ALB URL for SecretsManager and UI
+
+The ALB DNS from Step 5 must be used in two places later so the application and backend use the correct URL:
+
+1. **SecretsManager (Step 13)** update the [secret](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/SecretsManager.yaml). Use the ALB DNS name to update `HostURL` value in Secrets Manager.
+
+2. **UI Dockerfile (Step 21)** – The frontend is built with **NEXT_PUBLIC_DEV_URL**. When you build the UI image in Step 21, pass the ALB URL in the [Dockerfile](https://github.com/bmir-datahub/datahub-ui-main/blob/feature/aws/Dockerfile)
+
+
 ---
 
 ### Step 6: Deploy RDS Stack
@@ -643,7 +652,11 @@ After OpenSearch stack deployment, update the [secret](https://github.com/bmir-d
 
 Creates secrets for database credentials, API keys, and OpenSearch configuration.
 
-⚠️ **Important:** This stack must be deployed AFTER the OpenSearch stack because it imports the OpenSearch endpoint.
+⚠️ **Important:** Deploy this stack only after **RDS**, **Load Balancer**, and **OpenSearch** are deployed. The secret stores endpoints from those stacks:
+
+- **host** — RDS endpoint (from Step 6)
+- **SEARCH_HOST** — OpenSearch endpoint (from Step 12)
+- **HostURL** — Load Balancer URL (from Step 5)
 
 ```bash
 aws cloudformation deploy \
@@ -1167,7 +1180,7 @@ You can check deployment progress in AWS Console:
 ✅ **Verify:** Check all services are deployed
 ```bash
 aws ecs describe-services \
-  --cluster ${PROJECT_NAME}-cluster-${ENV} \
+  --cluster ${PROJECT_NAME}-Services-${ENV} \
   --services $(aws ecs list-services --cluster ${PROJECT_NAME}-Services-${ENV} --query 'serviceArns' --output text) \
   --query 'services[*].{Name:serviceName,Running:runningCount,Desired:desiredCount,Status:status}' \
   --output table
@@ -1184,10 +1197,10 @@ aws ecs describe-services \
 Check that all stacks deployed successfully:
 
 ```bash
-# List all DataHub stacks
+# List all ${PROJECT_NAME} stacks
 aws cloudformation list-stacks \
   --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
-  --query 'StackSummaries[?contains(StackName, `DataHub`)].{Name:StackName,Status:StackStatus,Created:CreationTime}' \
+  --query "StackSummaries[?contains(StackName, \`${PROJECT_NAME}\`)].{Name:StackName,Status:StackStatus,Created:CreationTime}" \
   --output table
 ```
 
