@@ -1109,11 +1109,12 @@ Before proceeding, ensure:
 - ✅ ECR repositories exist (Step 11)
 - ✅ Docker is installed and running
 - ✅ Maven is installed (for backend services)
-- ✅ Python 3.7+ with `boto3` installed
 
 #### Install Python Dependencies
 
 ```bash
+cd ~/dataHub/datahub-deployment-scripts
+
 # Install boto3 for deploy.py script
 pip install boto3
 
@@ -1140,10 +1141,6 @@ python deploy.py ${PROJECT_NAME} download-service ${ENV}
 python deploy.py ${PROJECT_NAME} entity-service ${ENV}
 python deploy.py ${PROJECT_NAME} search-service ${ENV}
 python deploy.py ${PROJECT_NAME} ui ${ENV}
-
-# Example with specific values:
-# python deploy.py datahub user-service dev
-# python deploy.py datahub ui prod latest
 ```
 
 **What the script does for EACH service:**
@@ -1158,6 +1155,8 @@ python deploy.py ${PROJECT_NAME} ui ${ENV}
 7. ✅ Verifies deployment was triggered
 
 ⏳ **Wait time:** ~5-7 minutes per service (~50 minutes total)
+
+**Common Error** : Docker build/push failed. Please try again. 
 
 #### Progress Tracking
 
