@@ -338,6 +338,7 @@ echo "DataHubUniqueId: $DataHubUniqueId"
 - `${PROJECT_NAME}-review-{DataHubUniqueId}-{ENV}`
 - `${PROJECT_NAME}-default-{DataHubUniqueId}-{ENV}`
 - `${PROJECT_NAME}-lambda-artifacts-{DataHubUniqueId}-{ENV}`
+- `${PROJECT_NAME}-resources-{DataHubUniqueId}-{ENV}`
 
 #### Step 4b. Deploy into AWS
 ```bash
@@ -356,7 +357,7 @@ aws cloudformation deploy \
 ```bash
 aws s3 ls | grep ${PROJECT_NAME}
 ```
-**Expected:** Should list 5 buckets
+**Expected:** Should list 6 buckets
 
 ---
 
