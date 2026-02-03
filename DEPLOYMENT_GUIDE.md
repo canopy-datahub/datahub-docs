@@ -658,6 +658,11 @@ Creates secrets for database credentials, API keys, and OpenSearch configuration
 - **SEARCH_HOST** — OpenSearch endpoint (from Step 12)
 - **HostURL** — Load Balancer URL (from Step 5)
 
+Also update these email values for your environment before deployment:
+
+- **supportEmail** — Address used as the sender (From) for system emails and often in Cc (e.g., study registration, support requests). Use an address on a domain verified in SES (e.g. `*@stanford.edu` if that domain is verified).
+- **StakeholderEmailsStudyReg** — Comma-separated list of additional recipients (Cc) for study registration and study approval emails (e.g., NIH officers). Leave empty or set as needed.
+
 ```bash
 aws cloudformation deploy \
   --stack-name ${PROJECT_NAME}-SecretsManager-${ENV} \
