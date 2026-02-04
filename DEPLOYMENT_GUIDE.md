@@ -890,7 +890,7 @@ aws cloudformation deploy \
 ⏳ **Wait time:** 15-20 minutes for all services to start
 
 **What's created:**
-- ECS services (1 per microservice):
+- ECSr sevices (1 per microservice):
   - User Service
   - Submission Service
   - Report Service
@@ -902,7 +902,7 @@ aws cloudformation deploy \
 ✅ **Verify:** Check ECS services are running
 ```bash
 aws ecs list-services --cluster ${PROJECT_NAME}-Services-${ENV}
----
+```
 
 ### Step 18: Deploy SES Stack
 **Time:** 10 minutes
