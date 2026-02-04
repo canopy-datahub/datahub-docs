@@ -350,7 +350,7 @@ aws cloudformation deploy \
 
 ✅ **Verify:** 
 ```bash
-aws s3 ls | grep ${PROJECT_NAME}-${DataHubUniqueId}-${ENV}
+aws s3 ls | grep ${PROJECT_NAME}
 ```
 **Expected:** Should list 5 buckets
 
@@ -860,7 +860,8 @@ aws cloudformation deploy \
 ✅ **Verify:** Check ECS services are running
 ```bash
 aws ecs list-services --cluster ${PROJECT_NAME}-Services-${ENV}
-
+```
+```bash
 # Check running tasks
 aws ecs describe-services \
   --cluster ${PROJECT_NAME}-Services-${ENV} \
