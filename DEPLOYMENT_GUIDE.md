@@ -168,6 +168,8 @@ ls -la
 ### Step 1: Install and Configure AWS CLI
 **Time:** 10 minutes
 
+You need to install the AWS CLI and have an IAM user with the required permissions set up so you can run AWS commands from your machine.
+
 #### Step 1a: Install AWS CLI
 ```bash
 # For MacOS:
@@ -251,6 +253,7 @@ cd ~/dataHub/datahub-cloud-replication
 nano parameters-${ENV}.json  
 
 # edit your `ProjectName` parameter
+# important: use lowercase only, as this value will also be used in s3 bucket names, which only allow lowercase
 
 # save it in the environment variable
 export PROJECT_NAME=$(cat parameters-${ENV}.json | grep -o '"ProjectName": "[^"]*"' | cut -d'"' -f4)
@@ -305,7 +308,7 @@ aws cloudformation describe-stacks \
 
 Creates S3 buckets for data files, metadata files, data dictionary files and lambda functions code.
 
-#### 1. Configure DataHubUniqueId for S3 Buckets 
+#### step 4a. Configure DataHubUniqueId for S3 Buckets 
 
 S3 bucket names must be globally unique. Update the `DataHubUniqueId` parameter:
 
@@ -316,6 +319,7 @@ cd ~/dataHub/datahub-cloud-replication
 nano parameters-${ENV}.json  
 
 # edit your `DataHubUniqueId` parameter
+# important: use lowercase only, as this value will also be used in s3 bucket names, which only allow lowercase
 
 # save it in the environment variable
 export DataHubUniqueId=$(cat parameters-${ENV}.json | grep -o '"DataHubUniqueId": "[^"]*"' | cut -d'"' -f4)
@@ -330,12 +334,13 @@ echo "DataHubUniqueId: $DataHubUniqueId"
 
 **Bucket names that will be created:**
 - `${PROJECT_NAME}-upload-portal-{DataHubUniqueId}-{ENV}`
-- `sftp-${PROJECT_NAME}-{DataHubUniqueId}-{ENV}`
+- `${PROJECT_NAME}-sftp-{DataHubUniqueId}-{ENV}`
 - `${PROJECT_NAME}-review-{DataHubUniqueId}-{ENV}`
 - `${PROJECT_NAME}-default-{DataHubUniqueId}-{ENV}`
 - `${PROJECT_NAME}-lambda-artifacts-{DataHubUniqueId}-{ENV}`
+- `${PROJECT_NAME}-resources-{DataHubUniqueId}-{ENV}`
 
-#### 2. Deploy into AWS
+#### Step 4b. Deploy into AWS
 ```bash
 aws cloudformation deploy \
   --stack-name ${PROJECT_NAME}-S3-${ENV} \
@@ -352,7 +357,7 @@ aws cloudformation deploy \
 ```bash
 aws s3 ls | grep ${PROJECT_NAME}
 ```
-**Expected:** Should list 5 buckets
+**Expected:** Should list 6 buckets
 
 ---
 
@@ -374,10 +379,19 @@ aws cloudformation deploy \
 ✅ **Verify:** Get ALB DNS name
 ```bash
 aws elbv2 describe-load-balancers \
-  --query 'LoadBalancers[?contains(LoadBalancerName, `datahub`)].DNSName' \
+  --query "LoadBalancers[?contains(LoadBalancerName, \`${PROJECT_NAME}\`)].DNSName" \
   --output text
 ```
-**Expected:** DNS name like `datahub-alb-dev-123456789.us-east-1.elb.amazonaws.com`
+**Expected:** DNS name like `${PROJECT_NAME}-alb-${ENV}-123456789.us-east-1.elb.amazonaws.com`
+
+#### Post-deployment: Set ALB URL for SecretsManager and UI
+
+The ALB DNS from Step 5 must be used in two places later so the application and backend use the correct URL:
+
+1. **SecretsManager (Step 13)** update the [secret](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/SecretsManager.yaml). Use the ALB DNS name to update `HostURL` value in Secrets Manager.
+
+2. **UI Dockerfile (Step 21)** – The frontend is built with **NEXT_PUBLIC_DEV_URL**. When you build the UI image in Step 21, pass the ALB URL in the [Dockerfile](https://github.com/bmir-datahub/datahub-ui-main/blob/feature/aws/Dockerfile)
+
 
 ---
 
@@ -395,7 +409,7 @@ Before deploying, add your local IP to allow database connection for schema setu
 curl -4 ifconfig.me
 ```
 
-Edit [RDS.yaml](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/RDS.yaml) at line 153:
+Edit [RDS.yaml](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/RDS.yaml) at line 157:
 ```yaml
 - CidrIp: "YOUR_PUBLIC_IP/32"  # Replace with your IP from above
   Description: "Your workstation"
@@ -418,10 +432,10 @@ aws cloudformation deploy \
 ✅ **Verify:** Get RDS endpoint
 ```bash
 aws rds describe-db-instances \
-  --query 'DBInstances[?DBInstanceIdentifier==`${PROJECT_NAME}-postgres-'${ENV}'`].Endpoint.Address' \
+  --query "DBInstances[?DBInstanceIdentifier==\`${PROJECT_NAME}-postgresql-${ENV}\`].Endpoint.Address" \
   --output text
 ```
-#### **Expected:** Endpoint like `datahub-postgres-dev.abc123.us-east-1.rds.amazonaws.com`
+#### **Expected:** Endpoint like `${PROJECT_NAME}-postgresql-${ENV}.abc123.us-east-1.rds.amazonaws.com`
 ---
 
 ### Step 7: Setup Database Schema
@@ -478,7 +492,7 @@ python deploy_to_rds.py --project-name ${PROJECT_NAME} --env dev --region us-eas
 
 After database deployment, update the [secret](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/SecretsManager.yaml) with RDS credentials.
 
-⚠️ **Note:** Step 6 will display the RDS endpoint. Use that endpoint to update `host` value in Secrets Manager (see detailed guide below).
+⚠️ **Note:** Step 6 will display the RDS endpoint. Use that endpoint to update `host` value in Secrets Manager (see detailed guide above).
 
 
 
@@ -526,7 +540,7 @@ aws cloudformation deploy \
 
 ✅ **Verify:** List log groups
 ```bash
-aws logs describe-log-groups --query 'logGroups[?contains(logGroupName, `datahub`)].logGroupName'
+aws logs describe-log-groups --query "logGroups[?contains(logGroupName, \`${PROJECT_NAME}\`)].logGroupName"
 ```
 
 ---
@@ -575,7 +589,7 @@ aws cloudformation deploy \
 
 ✅ **Verify:** List ECR repositories
 ```bash
-aws ecr describe-repositories --query 'repositories[?contains(repositoryName, `datahub`)].repositoryName'
+aws ecr describe-repositories --query "repositories[?contains(repositoryName, \`${PROJECT_NAME}\`)].repositoryName"
 ```
 
 ---
@@ -621,10 +635,16 @@ aws cloudformation deploy \
 ```bash
 aws opensearch describe-domain \
   --domain-name ${PROJECT_NAME}-opensearch-${ENV} \
-  --query 'DomainStatus.Endpoint' \
+  --query 'DomainStatus.Endpoints.vpc' \
   --output text
 ```
 **Expected:** Endpoint like `vpc-datahub-opensearch-dev-abc123.us-east-1.es.amazonaws.com`
+
+#### Post-Deployment: Update Secrets Manager
+
+After OpenSearch stack deployment, update the [secret](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/SecretsManager.yaml) with OpenSearch endpoint.
+
+⚠️ **Note:** Step 12b will display the OpenSearch endpoint. Use that endpoint to update `SEARCH_HOST` value in Secrets Manager.
 
 ---
 
@@ -633,7 +653,16 @@ aws opensearch describe-domain \
 
 Creates secrets for database credentials, API keys, and OpenSearch configuration.
 
-⚠️ **Important:** This stack must be deployed AFTER the OpenSearch stack because it imports the OpenSearch endpoint.
+⚠️ **Important:** Deploy this stack only after **RDS**, **Load Balancer**, and **OpenSearch** are deployed. The secret stores endpoints from those stacks:
+
+- **host** — RDS endpoint (from Step 6)
+- **SEARCH_HOST** — OpenSearch endpoint (from Step 12)
+- **HostURL** — Load Balancer URL (from Step 5)
+
+Also update these email values for your environment before deployment:
+
+- **supportEmail** — Address used as the sender (From) for system emails and often in Cc (e.g., study registration, support requests). Use an address on a domain verified in SES (e.g. `*@stanford.edu` if that domain is verified).
+- **StakeholderEmailsStudyReg** — Comma-separated list of additional recipients (Cc) for study registration and study approval emails (e.g., NIH officers). Leave empty or set as needed.
 
 ```bash
 aws cloudformation deploy \
@@ -646,8 +675,6 @@ aws cloudformation deploy \
 ```
 
 ✅ **Verify:** Check secret was created
-
-The application secret is named **`${PROJECT_NAME}_application_${ENV}`** (e.g., `datahub_application_dev`). ECS task definitions set the **`AWS_SECRET_NAME`** environment variable to this value so backend services load the correct secret via `spring.config.import: aws-secretsmanager:${AWS_SECRET_NAME}`. For a duplicate deployment in the same account, use a different `ProjectName` so each app has its own secret.
 
 ```bash
 aws secretsmanager describe-secret --secret-id ${PROJECT_NAME}_application_${ENV}
@@ -693,10 +720,21 @@ Lambda layers separate dependencies from code, enabling faster deployments.
 
 #### Create the Layer
 
+**Ensure Docker is running** (required for ARM64 layer build):
+
 ```bash
+# macOS: open Docker Desktop if installed (or start Docker from Applications)
+open -a Docker
+
+# Wait for Docker to finish starting (whale icon in menu bar), then verify:
+docker info
+
+# Navigate to python script folder 
 cd ~/dataHub/datahub-development/opensearch/opensearch_reindex
 
 # Create Lambda layer with ARM64-compatible dependencies
+python create_layer.py [layer-name] [region] [profile]
+# For example:
 python create_layer.py dependency-layer us-east-1 datahub-rep
 ```
 
@@ -708,13 +746,13 @@ python create_layer.py dependency-layer us-east-1 datahub-rep
 
 ⏳ **Wait time:** 3-5 minutes (Docker build + upload)
 
-✅ **Verify:** Note the Layer ARN from the output
+✅ **Verify:** Note the Layer ARN from the output, such as:
 ```
 Layer ARN:
   arn:aws:lambda:us-east-1:123456789012:layer:dependency-layer:1
 ```
 
-**⚠️ Important:** Ensure this ARN matches what's in `datahub-cloud-replication/modules/Lambda.yaml` at line 272. If different, update [Lambda.yaml](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/Lambda.yaml) with the new ARN.
+**⚠️ Important:** Ensure this ARN matches what's in `datahub-cloud-replication/modules/Lambda.yaml` at line 274. If different, update [Lambda.yaml](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/Lambda.yaml) with the new ARN.
 
 ---
 
@@ -779,7 +817,11 @@ mvn clean package -DskipTests
 aws s3 cp target/datahub-service-email-0.0.1-SNAPSHOT-aws.jar \
   s3://${PROJECT_NAME}-lambda-artifacts-${DataHubUniqueId}-${ENV}/email-service/
 ```
-
+✅ **Verify:** Check S3 upload
+```bash
+aws s3 ls s3://${PROJECT_NAME}-lambda-artifacts-${DataHubUniqueId}-${ENV}/email-service/
+```
+**Expected:** Should show `datahub-service-email-0.0.1-SNAPSHOT-aws.jar`
 ---
 
 ### Step 16: Deploy Lambda Stack
@@ -814,7 +856,7 @@ aws cloudformation deploy \
 
 ✅ **Verify:** Check Lambda functions exist
 ```bash
-aws lambda list-functions --query 'Functions[?contains(FunctionName, `DataHub`)].FunctionName'
+aws lambda list-functions --query "Functions[?contains(FunctionName, \`${PROJECT_NAME}\`)].FunctionName"
 ```
 
 #### Test OpenSearch Lambda (Optional)
@@ -860,17 +902,6 @@ aws cloudformation deploy \
 ✅ **Verify:** Check ECS services are running
 ```bash
 aws ecs list-services --cluster ${PROJECT_NAME}-Services-${ENV}
-```
-```bash
-# Check running tasks
-aws ecs describe-services \
-  --cluster ${PROJECT_NAME}-Services-${ENV} \
-  --services $(aws ecs list-services --cluster ${PROJECT_NAME}-Services-${ENV} --query 'serviceArns' --output text) \
-  --query 'services[*].{Name:serviceName,Running:runningCount,Desired:desiredCount}'
-```
-
-**Expected:** All services should show `Running: 1, Desired: 1`
-
 ---
 
 ### Step 18: Deploy SES Stack
@@ -1097,11 +1128,12 @@ Before proceeding, ensure:
 - ✅ ECR repositories exist (Step 11)
 - ✅ Docker is installed and running
 - ✅ Maven is installed (for backend services)
-- ✅ Python 3.7+ with `boto3` installed
 
 #### Install Python Dependencies
 
 ```bash
+cd ~/dataHub/datahub-deployment-scripts
+
 # Install boto3 for deploy.py script
 pip install boto3
 
@@ -1128,10 +1160,6 @@ python deploy.py ${PROJECT_NAME} download-service ${ENV}
 python deploy.py ${PROJECT_NAME} entity-service ${ENV}
 python deploy.py ${PROJECT_NAME} search-service ${ENV}
 python deploy.py ${PROJECT_NAME} ui ${ENV}
-
-# Example with specific values:
-# python deploy.py datahub user-service dev
-# python deploy.py datahub ui prod latest
 ```
 
 **What the script does for EACH service:**
@@ -1147,6 +1175,8 @@ python deploy.py ${PROJECT_NAME} ui ${ENV}
 
 ⏳ **Wait time:** ~5-7 minutes per service (~50 minutes total)
 
+**Common Error** : Docker build/push failed. Please try again. 
+
 #### Progress Tracking
 
 You can check deployment progress in AWS Console:
@@ -1156,7 +1186,7 @@ You can check deployment progress in AWS Console:
 ✅ **Verify:** Check all services are deployed
 ```bash
 aws ecs describe-services \
-  --cluster ${PROJECT_NAME}-cluster-${ENV} \
+  --cluster ${PROJECT_NAME}-Services-${ENV} \
   --services $(aws ecs list-services --cluster ${PROJECT_NAME}-Services-${ENV} --query 'serviceArns' --output text) \
   --query 'services[*].{Name:serviceName,Running:runningCount,Desired:desiredCount,Status:status}' \
   --output table
@@ -1173,10 +1203,10 @@ aws ecs describe-services \
 Check that all stacks deployed successfully:
 
 ```bash
-# List all DataHub stacks
+# List all ${PROJECT_NAME} stacks
 aws cloudformation list-stacks \
   --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
-  --query 'StackSummaries[?contains(StackName, `DataHub`)].{Name:StackName,Status:StackStatus,Created:CreationTime}' \
+  --query "StackSummaries[?contains(StackName, \`${PROJECT_NAME}\`)].{Name:StackName,Status:StackStatus,Created:CreationTime}" \
   --output table
 ```
 
@@ -1222,7 +1252,7 @@ Test that the application is accessible and functioning:
 ```bash
 # Get ALB DNS name
 ALB_DNS=$(aws elbv2 describe-load-balancers \
-  --query 'LoadBalancers[?contains(LoadBalancerName, `datahub`)].DNSName' \
+  --query "LoadBalancers[?contains(LoadBalancerName, \`${PROJECT_NAME}\`)].DNSName" \
   --output text)
 
 echo "Application URL: http://$ALB_DNS"
@@ -1310,7 +1340,7 @@ aws logs tail /aws/lambda/${PROJECT_NAME}-OpenSearchRefresh-${ENV} --follow
 
 ```bash
 # Test connection from your machine
-psql -h $RDS_ENDPOINT -U datahub_user -d datahub_${ENV}
+psql -h $RDS_ENDPOINT -U datahub_user -d ${PROJECT_NAME}_${ENV}
 ```
 
 #### OpenSearch Connection Issues
@@ -1433,14 +1463,14 @@ echo "Cleanup complete!"
 ```bash
 # Check for remaining stacks
 aws cloudformation list-stacks \
-  --query 'StackSummaries[?contains(StackName, `DataHub`) && StackStatus != `DELETE_COMPLETE`].{Name:StackName,Status:StackStatus}' \
+  --query "StackSummaries[?contains(StackName, \`${PROJECT_NAME}\`) && StackStatus != \`DELETE_COMPLETE\`].{Name:StackName,Status:StackStatus}" \
   --output table
 
 # Check for remaining S3 buckets
-aws s3 ls | grep datahub
+aws s3 ls | grep ${PROJECT_NAME}
 
 # Check for remaining ECR repositories
-aws ecr describe-repositories --query 'repositories[?contains(repositoryName, `datahub`)].repositoryName'
+aws ecr describe-repositories --query "repositories[?contains(repositoryName, \`${PROJECT_NAME}\`)].repositoryName"
 ```
 
 ---
