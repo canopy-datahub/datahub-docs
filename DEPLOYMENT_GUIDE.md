@@ -1,4 +1,4 @@
-# Redwood Platform AWS Deployment Guide
+# Canopy Platform AWS Deployment Guide
 
 ## 📋 Quick Navigation
 
@@ -388,7 +388,13 @@ aws elbv2 describe-load-balancers \
 
 The ALB DNS from Step 5 must be used in two places later so the application and backend use the correct URL:
 
-1. **SecretsManager (Step 13)** update the [secret](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/SecretsManager.yaml). Use the ALB DNS name to update `HostURL` value in Secrets Manager.
+1. **SecretsManager (Step 13)** — Save the ALB DNS name in `parameters-${ENV}.json` now, before deploying the SecretsManager stack. `SecretsManager.yaml` reads `HostURL` as a CloudFormation parameter and injects it directly into the secret, so no manual editing of the secret is required.
+
+   ```json
+   "LoadBalancerDomainName": "http://${PROJECT_NAME}-alb-${ENV}-123456789.us-east-1.elb.amazonaws.com"
+   ```
+
+   > Replace the placeholder above with the actual DNS name returned by the verify command above.
 
 2. **UI Dockerfile (Step 21)** – The frontend is built with **NEXT_PUBLIC_DEV_URL**. When you build the UI image in Step 21, pass the ALB URL in the [Dockerfile](https://github.com/bmir-datahub/datahub-ui-main/blob/feature/aws/Dockerfile)
 
@@ -402,18 +408,20 @@ Creates RDS PostgreSQL database instance.
 
 #### Step 6a. Configure RDS Security Group
 
-Before deploying, add your local IP to allow database connection for schema setup:
+Before deploying, get your public IP and save it as `MyIP` in `parameters-${ENV}.json`. `RDS.yaml` reads this value as a CloudFormation parameter and adds it to the RDS security group, so no manual file editing is required.
 
 ```bash
 # Get your public IP
 curl -4 ifconfig.me
 ```
 
-Edit [RDS.yaml](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/RDS.yaml) at line 157:
-```yaml
-- CidrIp: "YOUR_PUBLIC_IP/32"  # Replace with your IP from above
-  Description: "Your workstation"
+Then set the value in `parameters-${ENV}.json`:
+
+```json
+"MyIP": "203.0.113.5/32"
 ```
+
+> Replace the IP above with the one returned by the `curl` command. The `/32` suffix is required.
 
 #### Step 6b. Deploy RDS Stack
 
@@ -490,9 +498,15 @@ python deploy_to_rds.py --project-name ${PROJECT_NAME} --env dev --region us-eas
 
 #### Post-Deployment: Update Secrets Manager
 
-After database deployment, update the [secret](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/SecretsManager.yaml) with RDS credentials.
+After database deployment, save the RDS endpoint as `RDSEndpoint` in `parameters-${ENV}.json` before deploying the SecretsManager stack. `SecretsManager.yaml` reads `RDSEndpoint` as a CloudFormation parameter and injects it directly into the secret, so no manual editing of the secret is required.
 
-⚠️ **Note:** Step 6 will display the RDS endpoint. Use that endpoint to update `host` value in Secrets Manager (see detailed guide above).
+```json
+"RDSEndpoint": "my-db.cyhmos66o8v8.us-east-1.rds.amazonaws.com"
+```
+
+> Replace the placeholder above with the actual endpoint shown at the end of Step 6.
+
+⚠️ **Note:** Step 6 will display the RDS endpoint. Save it in `parameters-${ENV}.json` as shown above — do **not** edit Secrets Manager directly.
 
 
 
@@ -642,9 +656,15 @@ aws opensearch describe-domain \
 
 #### Post-Deployment: Update Secrets Manager
 
-After OpenSearch stack deployment, update the [secret](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/SecretsManager.yaml) with OpenSearch endpoint.
+After OpenSearch stack deployment, save the OpenSearch endpoint as `OpenSearchEndpoint` in `parameters-${ENV}.json` before deploying the SecretsManager stack. `SecretsManager.yaml` reads `OpenSearchEndpoint` as a CloudFormation parameter and injects it directly into the secret as `SEARCH_HOST`, so no manual editing of the secret is required.
 
-⚠️ **Note:** Step 12b will display the OpenSearch endpoint. Use that endpoint to update `SEARCH_HOST` value in Secrets Manager.
+```json
+"OpenSearchEndpoint": "vpc-my-domain-abc123.us-east-1.es.amazonaws.com"
+```
+
+> Replace the placeholder above with the actual endpoint shown at the end of Step 12b.
+
+⚠️ **Note:** Step 12b will display the OpenSearch endpoint. Save it in `parameters-${ENV}.json` as shown above — do **not** edit Secrets Manager directly.
 
 ---
 
@@ -768,7 +788,7 @@ python deploy_lambda.py <project-name> <env> <unique-id>
 
 **Parameters:**
 
-- **project-name**: Project name (e.g., `datahub`, `Redwood`) - **REQUIRED**
+- **project-name**: Project name (e.g., `datahub`, `canopy`) - **REQUIRED**
 - **env**: `dev`, `test`, or `prod` - **REQUIRED**
 - **DataHubUniqueId**: Unique identifier for S3 bucket (e.g., `stanford`) - **REQUIRED**
   - S3 bucket: `${PROJECT_NAME}-lambda-artifacts-{DataHubUniqueId}-{env}`
@@ -995,7 +1015,7 @@ aws cloudformation deploy \
 ```
 
 **What's created:**
-- EventBridge rule SFTP-{Environment} that monitors S3 for SFTP file uploads
+- EventBridge rule {ProjectName}-SFTP-{Environment} that monitors this project’s SFTP S3 bucket for file uploads (one rule per project when using the same account)
 - Automatic routing of S3 events to SQS SFTP Queue
 
 ---
