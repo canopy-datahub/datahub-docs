@@ -37,9 +37,6 @@ The platform is currently **deployed exclusively on Amazon Web Services (AWS)**.
 
 The platform is **not cloud-neutral**. It does not support deployment to other cloud providers (such as Google Cloud Platform or Microsoft Azure) or on-premises environments without significant re-engineering of the infrastructure layer.
 
-**Future Work**  
-To support cloud-neutral deployment, infrastructure dependencies would need to be abstracted behind provider-agnostic interfaces (for example, replacing AWS-specific SDK calls and CloudFormation with a portable IaC tool such as Terraform, and replacing AWS-specific services such as SES and SQS with provider-independent alternatives).
-
 ---
 
 ## Data File Access Control Limitation
