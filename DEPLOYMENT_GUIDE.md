@@ -98,7 +98,9 @@ Use this checklist to track your progress. Each step links to detailed instructi
 - [ ] **Step 6:** [Deploy RDS Stack](#step-6-deploy-rds-stack) (15 min)
   - [ ] **Step 6a:** [Configure RDS Security Group](#step-6a-configure-rds-security-group)
   - [ ] **Step 6b:** [Deploy RDS Stack](#step-6b-deploy-rds-stack)
-- [ ] **Step 7:** [Setup Database Schema](#step-7-setup-database-schema) (30 min)
+- [ ] **Step 7:** [Database Configuration](#step-7-database-configuration)
+  - [ ] **Step 7a:** [Setup Database Schema](#step-7a-setup-database-schema) (30 min)
+  - [ ] **Step 7b:** [Configure pg_cron Scheduler](#step-7b-configure-pg_cron-scheduler-optional) (Optional, 10 min)
 - [ ] **Step 8:** [Deploy Route53 Stack](#step-8-deploy-route53-stack) (Optional) (5 min)
 - [ ] **Step 9:** [Deploy CloudWatch Stack](#step-9-deploy-cloudwatch-stack) (5 min)
 - [ ] **Step 10:** [Deploy SQS Stack](#step-10-deploy-sqs-stack) (5 min)
@@ -118,9 +120,10 @@ Use this checklist to track your progress. Each step links to detailed instructi
   - [ ] **Step 18b:** [Configure SES Email Verification](#step-18b-configure-ses-email-verification)  (10 min)
 - [ ] **Step 19:** [Deploy EventBridge Stack](#step-19-deploy-eventbridge-stack) (5 min)
 - [ ] **Step 20:** [Deploy TransferFamily Stack](#step-20-deploy-transferfamily-stack-sftp-server) (10 min)
-  - [ ] **Step 20a:** [Create SFTP User Secret](#step-20a-create-sftp-user-secret)
-  - [ ] **Step 20b:** [Allocate Elastic IP](#step-20b-optional-allocate-elastic-ip) (Optional)
-  - [ ] **Step 20c:** [Deploy TransferFamily Stack](#step-20c-deploy-transferfamily-stack)
+  - [ ] **Step 20a:** [Allocate Elastic IP](#step-20a-optional-allocate-elastic-ip) (Optional)
+  - [ ] **Step 20b:** [Deploy TransferFamily Stack](#step-20b-deploy-transferfamily-stack)
+  - [ ] **Step 20c:** [Create SFTP User Account](#step-20c-create-an-sftp-user-account) (repeat per submitter)
+  - [ ] **Step 20d:** [Register SFTP User in Database](#step-20d-register-the-sftp-user-in-the-database--required) (repeat per submitter)
 - [ ] **Step 21:** [Build and Deploy Services](#step-21-build-and-deploy-services)  (50 min)
 
 ### Post-Deployment (10 min)
@@ -446,7 +449,11 @@ aws rds describe-db-instances \
 #### **Expected:** Endpoint like `${PROJECT_NAME}-postgresql-${ENV}.abc123.us-east-1.rds.amazonaws.com`
 ---
 
-### Step 7: Setup Database Schema
+### Step 7: Database Configuration
+
+---
+
+### Step 7a: Setup Database Schema
 **Time:** 30 minutes
 
 This step creates the database schema, tables, views, and initial data in your RDS PostgreSQL instance.
@@ -508,7 +515,14 @@ After database deployment, save the RDS endpoint as `RDSEndpoint` in `parameters
 
 ⚠️ **Note:** Step 6 will display the RDS endpoint. Save it in `parameters-${ENV}.json` as shown above — do **not** edit Secrets Manager directly.
 
+---
 
+### Step 7b: Configure pg_cron Scheduler *(Optional)*
+**Time:** 10 minutes
+
+Automates the weekly `hub_content_metrics` snapshot by scheduling `sp_generate_hub_content_metrics()` inside PostgreSQL. Skip this if you prefer to run the procedure manually.
+
+📄 **See full setup guide:** [PGCRON_METRICS_SETUP.md](./PGCRON_METRICS_SETUP.md)
 
 ---
 
@@ -1020,116 +1034,152 @@ aws cloudformation deploy \
 
 ---
 
-### Step 20: Deploy TransferFamily Stack (SFTP Server) (Need check)
+### Step 20: Deploy TransferFamily Stack (SFTP Server)
 **Time:** 10 minutes
 
 Creates an AWS Transfer Family SFTP server with custom Lambda-based authentication for secure file uploads.
 
-#### Prerequisites
+#### Step 20a: (Optional) Allocate Elastic IP
 
-Before deploying, you need to:
+The Transfer Family server uses `EndpointType: VPC`, which means it sits inside your VPC with no public DNS by default. Without an Elastic IP, the server has no stable public address — the `s-xxxx.server.transfer.amazonaws.com` hostname won't resolve from the internet, and any assigned IP is ephemeral and changes on redeploy.
 
-1. **Create an SFTP User Secret** in Secrets Manager with the required user credentials and permissions
-2. **Obtain an Elastic IP** (optional, but recommended for static SFTP endpoint)
+An Elastic IP gives the server a **fixed public IP** that:
+- Resolves the `s-xxxx.server.transfer.amazonaws.com` hostname publicly
+- Survives stack redeployments unchanged
+- Can be whitelisted by submitters whose institutions require firewall rules by IP
 
-#### Step 20a: Create SFTP User Secret
+It is strongly recommended for any environment where external submitters will connect. Only skip it for short-lived dev testing where you connect from within the VPC.
 
-Create a secret in Secrets Manager that contains the SFTP user configuration:
-
-```bash
-# Create a file with the user secret JSON
-cat > sftp-user-secret.json <<EOF
-{
-  "Password": "YourSecurePasswordHere",
-  "Role": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${PROJECT_NAME}-CustomSFTPTransferRole",
-  "HomeDirectory": "/${PROJECT_NAME}-sftp-${UNIQUE_ID}-${ENV}/${PROJECT_NAME}-user",
-  "PublicKeys": "",
-  "Policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"AllowListingOfUserFolder\",\"Action\":[\"s3:ListBucket\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:s3:::\${transfer:HomeBucket}\"],\"Condition\":{\"StringLike\":{\"s3:prefix\":[\"\${transfer:HomeFolder}/*\",\"\${transfer:HomeFolder}\"]}}},{\"Sid\":\"HomeDirObjectAccess\",\"Effect\":\"Allow\",\"Action\":[\"s3:PutObject\",\"s3:GetObject\",\"s3:DeleteObject\",\"s3:DeleteObjectVersion\",\"s3:GetObjectVersion\",\"s3:GetObjectACL\",\"s3:PutObjectACL\"],\"Resource\":\"arn:aws:s3:::\${transfer:HomeDirectory}*\"}]}"
-}
-EOF
-
-# Create the secret in Secrets Manager
-aws secretsmanager create-secret \
-  --name "SFTP/${PROJECT_NAME}-user" \
-  --description "${PROJECT_NAME} Transfer Family SFTP User" \
-  --secret-string file://sftp-user-secret.json \
-  --profile ${AWS_PROFILE} \
-  --tags Key=projectname,Value=${PROJECT_NAME} Key=environment,Value=${ENV}
-
-# Clean up the temporary file
-rm sftp-user-secret.json
-```
-
-**Important:** Replace `YourSecurePasswordHere` with a strong password for SFTP authentication.
-
-#### Step 20b: (Optional) Allocate Elastic IP
-
-For a static SFTP endpoint address:
+For a stable, static SFTP endpoint address that doesn't change on redeploy:
 
 ```bash
-# Allocate an Elastic IP
 aws ec2 allocate-address \
   --domain vpc \
   --profile ${AWS_PROFILE} \
   --tag-specifications 'ResourceType=elastic-ip,Tags=[{Key=Name,Value='${PROJECT_NAME}'-sftp-'${ENV}'},{Key=projectname,Value='${PROJECT_NAME}'},{Key=environment,Value='${ENV}'}]'
 
-# Note the AllocationId from the output - you'll need it for deployment
+# Note the AllocationId from the output (format: eipalloc-xxxxxxxx)
 ```
 
-#### Step 20c: Deploy TransferFamily Stack
+#### Step 20b: Deploy TransferFamily Stack
 
 ```bash
+cd ~/dataHub/datahub-cloud-replication
+
+# Without Elastic IP:
 aws cloudformation deploy \
   --stack-name ${PROJECT_NAME}-TransferFamily-${ENV} \
   --template-file modules/TransferFamily.yaml \
-  --parameter-overrides \
-    file://parameters-${ENV}.json \
-    ElasticIPAllocationId=<YOUR_ELASTIC_IP_ALLOCATION_ID> \
+  --parameter-overrides file://parameters-${ENV}.json \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --profile ${AWS_PROFILE} \
+  --tags projectname=${PROJECT_NAME} environment=${ENV}
+
+# With Elastic IP — first set ElasticIPAllocationId in parameters-${ENV}.json:
+#   "ElasticIPAllocationId": "eipalloc-xxxxxxxx"
+# Then deploy (same command as above):
+aws cloudformation deploy \
+  --stack-name ${PROJECT_NAME}-TransferFamily-${ENV} \
+  --template-file modules/TransferFamily.yaml \
+  --parameter-overrides file://parameters-${ENV}.json \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
   --tags projectname=${PROJECT_NAME} environment=${ENV}
 ```
 
-**Note:** If you skip the Elastic IP, remove the `ElasticIPAllocationId` parameter or set it to empty string `''`.
-
 **What's created:**
-- AWS Transfer Family SFTP server with VPC endpoints
-- Lambda function for custom authentication against Secrets Manager
-- API Gateway REST API for authentication integration
-- IAM roles and policies for SFTP file operations
-- CloudWatch log groups for SFTP access logs
+- AWS Transfer Family SFTP server (VPC endpoint, public subnet AZ1)
+- Lambda + API Gateway for custom Secrets Manager-based authentication
+- `CustomSFTPTransferRole` IAM role for S3 access
 
-✅ **Verify:** Get SFTP server endpoint
+✅ **Verify:** Get the SFTP server endpoint
+
 ```bash
-# Get the server ID
 SERVER_ID=$(aws transfer list-servers \
   --profile ${AWS_PROFILE} \
-  --query 'Servers[?Tags[?Key==`projectname` && Value==`'${PROJECT_NAME}'`]].ServerId' \
+  --query 'Servers[0].ServerId' \
   --output text)
 
-# Get the endpoint
 echo "SFTP Endpoint: ${SERVER_ID}.server.transfer.${AWS_REGION}.amazonaws.com"
+# Expected format: s-1234567890abcdef0.server.transfer.us-east-1.amazonaws.com
 ```
 
-**Expected:** Server ID should be returned (format: `s-1234567890abcdef0`)
+#### Step 20c: Create an SFTP User Account
+
+Each data submitter needs their own SFTP account. **Repeat this step for every submitter**, including the first one. No stack redeployment is needed — the SFTP server looks up any secret under the `SFTP/` namespace at login time.
+
+```bash
+# Set these for each submitter
+SFTP_USERNAME="testuser-${ENV}"       # becomes the SFTP login name, e.g. jsmith-dev
+SFTP_PASSWORD="TheirStrongPassword"
+
+# Get the shared IAM role ARN (same for all submitters)
+ROLE_ARN=$(aws iam get-role \
+  --role-name ${PROJECT_NAME}-CustomSFTPTransferRole-${ENV} \
+  --profile ${AWS_PROFILE} \
+  --query 'Role.Arn' --output text)
+
+# Create the secret in Secret Manager
+aws secretsmanager create-secret \
+  --name "SFTP/${SFTP_USERNAME}" \
+  --description "SFTP credentials for ${SFTP_USERNAME}" \
+  --secret-string "{
+    \"Password\": \"${SFTP_PASSWORD}\",
+    \"Role\": \"${ROLE_ARN}\",
+    \"HomeDirectory\": \"/${PROJECT_NAME}-sftp-${DataHubUniqueId}-${ENV}/${ENV}/${SFTP_USERNAME}\",
+    \"Policy\": \"{\\\"Version\\\":\\\"2012-10-17\\\",\\\"Statement\\\":[{\\\"Sid\\\":\\\"AllowListingOfUserFolder\\\",\\\"Action\\\":[\\\"s3:ListBucket\\\"],\\\"Effect\\\":\\\"Allow\\\",\\\"Resource\\\":[\\\"arn:aws:s3:::\${transfer:HomeBucket}\\\"],\\\"Condition\\\":{\\\"StringLike\\\":{\\\"s3:prefix\\\":[\\\"\${transfer:HomeFolder}/*\\\",\\\"\${transfer:HomeFolder}\\\"]}}},{\\\"Sid\\\":\\\"HomeDirObjectAccess\\\",\\\"Effect\\\":\\\"Allow\\\",\\\"Action\\\":[\\\"s3:PutObject\\\",\\\"s3:GetObject\\\",\\\"s3:DeleteObject\\\",\\\"s3:DeleteObjectVersion\\\",\\\"s3:GetObjectVersion\\\",\\\"s3:GetObjectACL\\\",\\\"s3:PutObjectACL\\\"],\\\"Resource\\\":\\\"arn:aws:s3:::\${transfer:HomeDirectory}*\\\"}]}\"
+  }" \
+  --profile ${AWS_PROFILE} \
+  --tags Key=projectname,Value=${PROJECT_NAME} Key=environment,Value=${ENV}
+```
+
+> - The `HomeDirectory` path `/{bucket}/{env}/{username}` is required — it determines the S3 key prefix that EventBridge watches for.
+> - The `Policy` scopes the session to the user's own folder only. The `${transfer:...}` placeholders are resolved by Transfer Family at login time.
+> - The SFTP login username equals `SFTP_USERNAME` (the secret name minus the `SFTP/` prefix).
+
+#### Step 20d: Register the SFTP User in the Database ⚠️ Required
+
+**Repeat this step for every submitter.** The platform identifies which user made an upload by matching the S3 path against `sftp_path` in the `users` table. The submitter must already have a platform user account (registered on the platform) before this step.
+
+```sql
+-- Pattern: '{env}/{SFTP_USERNAME}'
+UPDATE users
+SET sftp_path = 'dev/testuser-dev'
+WHERE email_address = 'test@test.com';
+```
 
 #### Testing SFTP Access
 
-Test the SFTP connection:
+First, get the public IP of the Elastic IP attached to the server:
 
 ```bash
-# Test SFTP connection
-sftp ${PROJECT_NAME}-user@${SERVER_ID}.server.transfer.${AWS_REGION}.amazonaws.com
-# Enter the password you configured in the secret
+aws ec2 describe-addresses \
+  --profile ${AWS_PROFILE} \
+  --filters "Name=tag:Name,Values=${PROJECT_NAME}-sftp-${ENV}" \
+  --query 'Addresses[0].PublicIp' \
+  --output text
+# e.g. 54.210.167.43
+```
 
-# Once connected, verify your home directory
+**Using an SFTP desktop app** (e.g. FileZilla):
+
+| Field | Value |
+|---|---|
+| Host | `54.210.167.43` (public IP only — no `sftp://`, no username prefix) |
+| Username | `${SFTP_USERNAME}` |
+| Password | password set in Step 20c |
+| Port | `22` |
+
+**Using the command line:**
+
+```bash
+sftp -P 22 ${SFTP_USERNAME}@<PUBLIC_IP>
+# Enter the password set in Step 20c
+
 pwd
-# Expected: /sftp-${PROJECT_NAME}-${UNIQUE_ID}-${ENV}/${PROJECT_NAME}-user
+# Expected: /{project}-sftp-{id}-{env}/{env}/{SFTP_USERNAME}
 
-# Upload a test file
-put test.txt
-
-# Exit
+put myfiles.zip
 exit
 ```
 
