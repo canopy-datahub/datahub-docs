@@ -1,9 +1,12 @@
 # Platform Limitations and Considerations
 
-This document outlines current limitations administrators and developers should consider when deploying and customizing the Redwood platform.
+This document outlines current limitations administrators and developers should consider when deploying and customizing the Canopy platform.
 
 ## Table of Contents
 - [Overview](#overview)
+- [Cloud Infrastructure Limitation](#cloud-infrastructure-limitation)
+- [Data File Access Control Limitation](#data-file-access-control-limitation)
+- [Data Model and Supported File Format Limitations](#data-model-and-supported-file-format-limitations)
 - [Metadata and Data Validation Limitations](#metadata-and-data-validation-limitations)
   - [Study Metadata](#study-metadata)
   - [Data File Metadata](#data-file-metadata)
@@ -25,14 +28,63 @@ This document outlines current limitations administrators and developers should 
 
 ## Overview
 
-This document summarizes platform limitations that affect configuration, data and metadata validation, and content updates in Redwood. It clarifies which changes can be made through existing interfaces or database updates, and which require code changes or updates to seed scripts. Use this guide to scope effort, plan data onboarding, and understand current constraints before deployment or customization.
+This document summarizes platform limitations that affect configuration, data and metadata validation, and content updates in Canopy. It clarifies which changes can be made through existing interfaces or database updates, and which require code changes or updates to seed scripts. Use this guide to scope effort, plan data onboarding, and understand current constraints before deployment or customization.
+
+
+## Cloud Infrastructure Limitation
+
+The platform is currently **deployed exclusively on Amazon Web Services (AWS)**. All infrastructure components — including compute (ECS Fargate), database (RDS PostgreSQL), search (OpenSearch), file storage (S3), messaging (SQS), email (SES), and networking (ALB) — are AWS-specific services and are provisioned using AWS CloudFormation.
+
+The platform is **not cloud-neutral**. It does not support deployment to other cloud providers (such as Google Cloud Platform or Microsoft Azure) or on-premises environments without significant re-engineering of the infrastructure layer.
+
+---
+
+## Data File Access Control Limitation
+
+Currently, all approved data files stored on the platform are **publicly accessible**. There is no per-user or per-study access control enforced at the file download level. Any user who can reach the platform can access any approved data file.
+
+**Future Work**  
+The platform plans to implement access control for data files. Until this is in place, operators should exercise caution when storing sensitive or controlled-access data on the platform.
+
+---
+
+## Data Model and Supported File Format Limitations
+
+### Fundamental Data Model
+
+The platform's core data model is organized as follows:
+
+- The top-level entity is a **Study**, which represents a research study and carries associated metadata (title, description, center, etc.).
+- Each study contains one or more **data file bundles**. A bundle groups a set of related files submitted together, consisting of:
+  - A **CSV data file** — the primary tabular research data.
+  - A **metadata file** — a structured description of the data file, in **JSON-LD** or **YAML** format, conforming to the platform's predefined metadata template.
+  - A **data dictionary file** — a CSV file that defines the variables (columns) present in the data file, following the platform's required data dictionary specification.
+- Each data file contains **variables** (columns), which are indexed and made searchable through the platform's variable search feature.
+- Studies may also have associated **PDF materials** (for example, study protocols, consent forms, or supplementary documents).
+
+### Unsupported File Formats
+
+The platform currently only supports the file types described above. The following material types are **not supported**:
+
+- **Images** (e.g., `.png`, `.jpg`, `.tiff`, `.dicom`)
+- **Code files** (e.g., `.py`, `.R`, `.ipynb`, `.sh`)
+- **Video or audio files**
+- **Non-CSV tabular formats** (e.g., `.xlsx`, `.parquet`, `.tsv` as a primary data file)
+- **Non-PDF document formats** (e.g., `.docx`, `.pptx`)
+
+Attempting to upload unsupported file types as primary data files or metadata files will result in validation failure.
+
+**Future Work**  
+Support for additional material types — including images, code notebooks, and alternative tabular formats — is a planned enhancement to better accommodate diverse research data workflows.
+
+---
 
 
 ## Metadata and Data Validation Limitations
 
 ### Study Metadata
 
-The study metadata template is currently **predefined and fixed** within the Redwood platform. During study registration, users are required to complete this standardized form to provide the required study metadata.
+The study metadata template is currently **predefined and fixed** within the Canopy platform. During study registration, users are required to complete this standardized form to provide the required study metadata.
 
 Some metadata fields rely on **controlled terms** (for example, enumerated values). While this approach promotes consistency and interoperability across studies, it may **not fully support all project-specific or domain-specific use cases**. In some cases, the available controlled terms may be too restrictive or not sufficiently expressive.
 
@@ -47,7 +99,7 @@ Until these features are available, users are encouraged to review the predefine
 
 ---
 ### Data File Metadata
-Similar to study metadata, [the data file metadata template](https://openview.metadatacenter.org/templates/https:%2F%2Frepo.metadatacenter.org%2Ftemplates%2Fc691629c-1183-4425-9a12-26201eab1a10) is **predefined and fixed** within the Redwood platform. The template defines the required structure, fields, data types, and controlled terms that must be used when describing data files.
+Similar to study metadata, [the data file metadata template](https://openview.metadatacenter.org/templates/https:%2F%2Frepo.metadatacenter.org%2Ftemplates%2Fc691629c-1183-4425-9a12-26201eab1a10) is **predefined and fixed** within the Canopy platform. The template defines the required structure, fields, data types, and controlled terms that must be used when describing data files.
 
 Data file metadata is applied **at the time of data upload**. When a data file is uploaded together with its corresponding metadata file, the platform performs a **strict validation** of the metadata file against the predefined template. This validation ensures that:
 - The metadata file is a valid JSON document  
@@ -177,8 +229,8 @@ INSERT INTO public.news (
     archived
 ) VALUES (
     'data-hub-upgrade-2026',
-    'Redwood Announces Major Platform Upgrades',
-    'We are excited to announce significant improvements to the Redwood platform, including enhanced search capabilities and new analytical tools. ||| These upgrades provide researchers with more dynamic access to explore datasets and utilize integrated analysis tools such as Jupyter notebooks, R, and Python. ||| The platform now supports real-time collaboration features and improved data visualization.',
+    'Canopy Announces Major Platform Upgrades',
+    'We are excited to announce significant improvements to the Canopy platform, including enhanced search capabilities and new analytical tools. ||| These upgrades provide researchers with more dynamic access to explore datasets and utilize integrated analysis tools such as Jupyter notebooks, R, and Python. ||| The platform now supports real-time collaboration features and improved data visualization.',
     1,  -- 1 = "general news" type
     '2026-01-15',
     '2026-06-30',
@@ -248,7 +300,7 @@ INSERT INTO public.newsletter (
     release_date,
     created_by
 ) VALUES (
-    'Redwood Newsletter - Q1 2026',
+    'Canopy Newsletter - Q1 2026',
     'https://s3.amazonaws.com/your-bucket/newsletters/2026-Q1-newsletter.pdf',
     '2026-03-31',
     9999
@@ -282,7 +334,7 @@ VALUES (6, 'video', NULL);
 
 **Current Implementation:**
 
-Several frontend UI elements in Redwood are **hardcoded directly in the frontend codebase** rather than managed through a database or admin interface. This includes:
+Several frontend UI elements in Canopy are **hardcoded directly in the frontend codebase** rather than managed through a database or admin interface. This includes:
 
 - **Resource Center** - Cards grouped into predefined categories (General, For Researchers, For Submitters)
 - **Homepage Footer Links** - Related Websites and Website Policies columns
@@ -310,7 +362,7 @@ Some platform features depend on **manually produced artifacts** that must be ge
 
 The **“Download Study Keys”** feature (Submitter Dashboard) allows users to download a spreadsheet of study identifiers, which will be used for sftp uploads. The file is **not generated by the application**. The download service serves a **static file** from the path configured in **UuidSpreadsheetPath** (in the application secret). That path is in the form `bucket/key` (e.g. `datahub-resources-stanford-dev/datahub-s3-resources/DataHub-Study-IDs.xlsx`).
 
-**Limitations:**
+**Things to Know:**
 
 - **Manual generation:** There is **no script or job in this repository** that exports study UUIDs from the database and produces the spreadsheet. Administrators must create the file by other means (e.g. ad‑hoc query + Excel export, or a custom script) and upload it to the configured S3 bucket and key.
 - **Staleness:** Because the file is static, it can become **out of date** when studies are added, updated, or removed. The platform does not refresh it automatically. Operators must periodically regenerate and re-upload the file to keep “Download Study Keys” accurate.
@@ -328,5 +380,5 @@ The **“Download Study Keys”** feature (Submitter Dashboard) allows users to 
 
 ---
 
-**Last Updated:** January 2026  
-**Version:** 1.0
+**Last Updated:** February 2026  
+**Version:** 1.1

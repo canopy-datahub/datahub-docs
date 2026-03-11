@@ -1,6 +1,6 @@
 # Frontend Customization Guide
 
-This guide explains how to customize various frontend UI elements in Redwood that are hardcoded in the codebase, including the Resource Center, homepage footer links, and other frontend-managed components.
+This guide explains how to customize various frontend UI elements in Canopy that are hardcoded in the codebase, including the Resource Center, homepage footer links, and other frontend-managed components.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -20,7 +20,7 @@ This guide explains how to customize various frontend UI elements in Redwood tha
 
 ## Overview
 
-This guide covers customization of frontend UI elements that are hardcoded in the Redwood codebase. These elements require direct code changes rather than database or admin interface updates:
+This guide covers customization of frontend UI elements that are hardcoded in the Canopy codebase. These elements require direct code changes rather than database or admin interface updates:
 
 - **Homepage Footer Links** - Related Websites and Website Policies columns
 - **Footer Social Media Links** - YouTube and Email/Newsletter icons in "Connect with Us" section
@@ -216,7 +216,7 @@ Modify the `href` attribute in the email/newsletter link (around lines 91-99):
 
 ### Overview
 
-The Resource Center displays informational cards organized into tabbed categories. Each tab contains cards relevant to different user groups or content types. The Redwood includes four tabs:
+The Resource Center displays informational cards organized into tabbed categories. Each tab contains cards relevant to different user groups or content types. The Canopy includes four tabs:
 
 1. **All** - Displays all cards from all categories in one view (automatically generated)
 2. **General** - Platform-wide information (News, Events, FAQ, etc.)
