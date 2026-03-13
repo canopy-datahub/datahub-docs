@@ -1512,6 +1512,7 @@ stacks=(
   "${PROJECT_NAME}-SQS-${ENV}"
   "${PROJECT_NAME}-CloudWatch-${ENV}"
   "${PROJECT_NAME}-Route53-${ENV}"
+  "${PROJECT_NAME}-Keycloak-${ENV}"
   "${PROJECT_NAME}-RDS-${ENV}"
   "${PROJECT_NAME}-LoadBalancer-${ENV}"
   "${PROJECT_NAME}-S3-${ENV}"
