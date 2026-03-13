@@ -1453,13 +1453,16 @@ Before deleting the stack, empty S3 buckets, RDS, and ECR so CloudFormation can 
 S3 buckets with content cannot be deleted by CloudFormation:
 
 ```bash
-# List all DataHub S3 buckets
-aws s3 ls | grep ${PROJECT_NAME}-${DataHubUniqueId}-${ENV}
+# Match all buckets for this project/uniqueId/env
+pattern="^${PROJECT_NAME}-.*-${DataHubUniqueId}-${ENV}$"
+
+# List matching buckets
+aws s3 ls | awk '{print $3}' | grep -E "$pattern"
 
 # Empty each bucket
-aws s3 ls | grep ${PROJECT_NAME}-${DataHubUniqueId}-${ENV} | awk '{print $3}' | while read bucket; do
+aws s3 ls | awk '{print $3}' | grep -E "$pattern" | while read -r bucket; do
   echo "Emptying bucket: $bucket"
-  aws s3 rm s3://$bucket --recursive
+  aws s3 rm "s3://$bucket" --recursive
 done
 ```
 
