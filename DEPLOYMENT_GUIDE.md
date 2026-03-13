@@ -1199,7 +1199,32 @@ Before proceeding, ensure:
 - ✅ Docker is installed and running
 - ✅ Maven is installed (for backend services)
 
-#### Install Python Dependencies
+#### Step 21a: Configure UI Environment Variables
+
+The UI build requires environment-specific values baked into the Next.js bundle. Set these up **before** running `deploy.py`.
+
+```bash
+cd ~/dataHub/datahub-ui-main
+
+# Copy the example file and fill in your values
+cp .env.example .env.local
+```
+
+Edit `.env.local`:
+
+```bash
+# Required — your load balancer URL from Step 5
+NEXT_PUBLIC_DEV_URL=https://<your-alb>.us-east-1.elb.amazonaws.com
+
+# Optional — Google Analytics Measurement ID (leave empty to disable)
+# See GOOGLE_ANALYTICS_SETUP.md for how to obtain this
+NEXT_PUBLIC_GTAG=G-XXXXXXXXXX
+
+# Keep as 1 for production (0 only for local dev with self-signed certs)
+NODE_TLS_REJECT_UNAUTHORIZED=1
+```
+
+#### Step 21b: Install Python Dependencies
 
 ```bash
 cd ~/dataHub/datahub-deployment-scripts
@@ -1211,16 +1236,15 @@ pip install boto3
 pip install -r requirements-deploy.txt
 ```
 
-#### Deploy All Services
+#### Step 21c: Deploy All Services
 
-The `deploy.py` script automates the entire build and deployment process for each service:
+The `deploy.py` script automates the entire build and deployment process. For the UI service it automatically reads `.env.local` and passes the values as Docker build args — no extra flags needed.
 
 ```bash
 cd ~/dataHub/datahub-deployment-scripts
 
 # Usage: python deploy.py <project-name> <service-name> <environment> [image-tag]
-# project-name,  service-name and environment are required, while image-tag is optioanl
-# image-tag with 'lastest' will be used, so the default value of image-tag is 'latest'.
+# project-name, service-name and environment are required; image-tag defaults to 'latest'.
 
 # Deploy each service (one at a time)
 python deploy.py ${PROJECT_NAME} user-service ${ENV}
@@ -1229,7 +1253,7 @@ python deploy.py ${PROJECT_NAME} report-service ${ENV}
 python deploy.py ${PROJECT_NAME} download-service ${ENV}
 python deploy.py ${PROJECT_NAME} entity-service ${ENV}
 python deploy.py ${PROJECT_NAME} search-service ${ENV}
-python deploy.py ${PROJECT_NAME} ui ${ENV}
+python deploy.py ${PROJECT_NAME} ui ${ENV}     
 ```
 
 **What the script does for EACH service:**
