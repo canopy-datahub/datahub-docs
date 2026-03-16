@@ -148,17 +148,16 @@ cd ~/dataHub
 
 # Clone all repositories
 git clone https://github.com/bmir-datahub/datahub-cloud-replication.git
+git clone https://github.com/bmir-datahub/datahub-deployment-scripts.git
 git clone https://github.com/bmir-datahub/datahub-development.git
-git clone https://github.com/bmir-datahub/datahub-service-entity.git
-git clone https://github.com/bmir-datahub/datahub-service-search.git
-git clone https://github.com/bmir-datahub/datahub-service-user.git
-git clone https://github.com/bmir-datahub/datahub-service-submission.git
-git clone https://github.com/bmir-datahub/datahub-service-report.git
 git clone https://github.com/bmir-datahub/datahub-service-download.git
 git clone https://github.com/bmir-datahub/datahub-service-email.git
-git clone https://github.com/bmir-datahub/datahub-lib-keycloak-auth.git
+git clone https://github.com/bmir-datahub/datahub-service-entity.git
+git clone https://github.com/bmir-datahub/datahub-service-report.git
+git clone https://github.com/bmir-datahub/datahub-service-search.git
+git clone https://github.com/bmir-datahub/datahub-service-submission.git
+git clone https://github.com/bmir-datahub/datahub-service-user.git
 git clone https://github.com/bmir-datahub/datahub-ui-main.git
-git clone https://github.com/bmir-datahub/datahub-deployment-scripts.git
 
 # Verify all repositories are cloned
 ls -la
