@@ -245,30 +245,33 @@ Set environment variables that will be used throughout the deployment:
 
 ```bash
 # Set environment (dev, test, or prod)
-export ENV=dev
+export CANOPY_ENV=dev
 
-# Set project name (use a different project name as you want)
-# Navigate to CloudFormation repository
-cd ~/dataHub/datahub-cloud-replication
+# Set home folder where all the repos were checked out
+export CANOPY_HOME=~/CANOPY
+
+# Set parameter files path
+export CANOPY_AWS_PARAMETER_FILE=${CANOPY_HOME}/datahub-cloud-replication/parameters-${CANOPY_ENV}.json
 
 # Open parameters file for your environment
-nano parameters-${ENV}.json  
+nano ${CANOPY_AWS_PARAMETER_FILE} 
 
 # edit your `ProjectName` parameter
 # important: use lowercase only, as this value will also be used in s3 bucket names, which only allow lowercase
 
 # save it in the environment variable
-export PROJECT_NAME=$(cat parameters-${ENV}.json | grep -o '"ProjectName": "[^"]*"' | cut -d'"' -f4)
+export CANOPY_PROJECT_NAME=$(cat ${CANOPY_AWS_PARAMETER_FILE} | grep -o '"ProjectName": "[^"]*"' | cut -d'"' -f4)
 
 # Set AWS profile and region
 export AWS_PROFILE=datahub-rep
 export AWS_REGION=us-east-1
 
 # Verify settings
-echo "Environment: $ENV"
-echo "ProjectName: $PROJECT_NAME"
-echo "AWS Profile: $AWS_PROFILE"
-echo "AWS Region: $AWS_REGION"
+echo "Environment:  $CANOPY_ENV"
+echo "Project Home: $CANOPY_HOME"
+echo "Project Name: $CANOPY_PROJECT_NAME"
+echo "AWS Profile:  $AWS_PROFILE"
+echo "AWS Region:   $AWS_REGION"
 ```
 ##### 💡 **Tip:** Add these to your `~/.bashrc` or `~/.zshrc` to persist across sessions.
 ---
@@ -276,7 +279,7 @@ echo "AWS Region: $AWS_REGION"
 ## Core AWS Infrastructure
 ### Navigate to CloudFormation repository
 ```bash
-cd ~/dataHub/datahub-cloud-replication
+cd ${CANOPY_HOME}/datahub-cloud-replication
 ```
 
 ### Step 3: Deploy Networking Stack
@@ -286,20 +289,21 @@ Creates VPC, subnets, security groups, and networking infrastructure.
 
 ```bash
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-Networking-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-Networking-${CANOPY_ENV} \
   --template-file modules/Networking.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
 
 ✅ **Verify:** 
 ```bash
 aws cloudformation describe-stacks \
-  --stack-name ${PROJECT_NAME}-Networking-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-Networking-${CANOPY_ENV} \
   --query 'Stacks[0].StackStatus' \
-  --output text
+  --output text \
+  --no-cli-pager
 ```
 **Expected:** `CREATE_COMPLETE`
 
@@ -315,17 +319,15 @@ Creates S3 buckets for data files, metadata files, data dictionary files and lam
 S3 bucket names must be globally unique. Update the `DataHubUniqueId` parameter:
 
 ```bash
-cd ~/dataHub/datahub-cloud-replication
-
 # Open parameters file for your environment
-nano parameters-${ENV}.json  
+nano ${CANOPY_AWS_PARAMETER_FILE} 
 
 # edit your `DataHubUniqueId` parameter
 # important: use lowercase only, as this value will also be used in s3 bucket names, which only allow lowercase
 
 # save it in the environment variable
-export DataHubUniqueId=$(cat parameters-${ENV}.json | grep -o '"DataHubUniqueId": "[^"]*"' | cut -d'"' -f4)
-echo "DataHubUniqueId: $DataHubUniqueId"
+export CANOPY_UNIQUE_ID=$(cat ${CANOPY_AWS_PARAMETER_FILE} | grep -o '"DataHubUniqueId": "[^"]*"' | cut -d'"' -f4)
+echo "Canopy Unique Id: $CANOPY_UNIQUE_ID"
 ```
 
 **Update the `DataHubUniqueId` value:**
@@ -345,19 +347,19 @@ echo "DataHubUniqueId: $DataHubUniqueId"
 #### Step 4b. Deploy into AWS
 ```bash
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-S3-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-S3-${CANOPY_ENV} \
   --template-file modules/S3.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
 
 ⚠️ **Troubleshooting:** If deployment fails with "BucketAlreadyExists", go back to Step 4.1 and choose a different `DataHubUniqueId`.
 
 ✅ **Verify:** 
 ```bash
-aws s3 ls | grep ${PROJECT_NAME}
+aws s3 ls | grep ${CANOPY_PROJECT_NAME}
 ```
 **Expected:** Should list 6 buckets
 
@@ -370,30 +372,31 @@ Creates Application Load Balancer, target groups, and routing rules.
 
 ```bash
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-LoadBalancer-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-LoadBalancer-${CANOPY_ENV} \
   --template-file modules/LoadBalancer.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
 
 ✅ **Verify:** Get ALB DNS name
 ```bash
 aws elbv2 describe-load-balancers \
-  --query "LoadBalancers[?contains(LoadBalancerName, \`${PROJECT_NAME}\`)].DNSName" \
-  --output text
+  --query "LoadBalancers[?contains(LoadBalancerName, \`${CANOPY_PROJECT_NAME}\`)].DNSName" \
+  --output text \
+  --no-cli-pager
 ```
-**Expected:** DNS name like `${PROJECT_NAME}-alb-${ENV}-123456789.us-east-1.elb.amazonaws.com`
+**Expected:** DNS name like `${CANOPY_PROJECT_NAME}-${ENV}-123456789.us-east-1.elb.amazonaws.com`
 
 #### Post-deployment: Set ALB URL for SecretsManager and UI
 
-The ALB DNS from Step 5 must be used in two places later so the application and backend use the correct URL:
+The ALB DNS from Step 5 must be used in two places later, so the application and backend use the correct URL:
 
-1. **SecretsManager (Step 13)** — Save the ALB DNS name in `parameters-${ENV}.json` now, before deploying the SecretsManager stack. `SecretsManager.yaml` reads `HostURL` as a CloudFormation parameter and injects it directly into the secret, so no manual editing of the secret is required.
+1. **SecretsManager (Step 13)** — Save the ALB DNS name in `parameters-${CANOPY_ENV}.json` now, before deploying the SecretsManager stack. `SecretsManager.yaml` reads `HostURL` as a CloudFormation parameter and injects it directly into the secret, so no manual editing of the secret is required.
 
    ```json
-   "LoadBalancerDomainName": "http://${PROJECT_NAME}-alb-${ENV}-123456789.us-east-1.elb.amazonaws.com"
+   "LoadBalancerDomainName": "http://${CANOPY_PROJECT_NAME}-${CANOPY_ENV}-123456789.us-east-1.elb.amazonaws.com"
    ```
 
    > Replace the placeholder above with the actual DNS name returned by the verify command above.
@@ -410,7 +413,7 @@ Creates RDS PostgreSQL database instance.
 
 #### Step 6a. Configure RDS Security Group
 
-Before deploying, get your public IP and save it as `MyIP` in `parameters-${ENV}.json`. `RDS.yaml` reads this value as a CloudFormation parameter and adds it to the RDS security group, so no manual file editing is required.
+Before deploying, get your public IP and save it as `MyIP` in `parameters-${CANOPY_ENV}.json`. `RDS.yaml` reads this value as a CloudFormation parameter and adds it to the RDS security group, so no manual file editing is required.
 
 ```bash
 # Get your public IP
@@ -429,12 +432,12 @@ Then set the value in `parameters-${ENV}.json`:
 
 ```bash
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-RDS-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-RDS-${CANOPY_ENV} \
   --template-file modules/RDS.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
 
 ⏳ **Wait time:** 10-15 minutes for RDS instance to be created
@@ -442,10 +445,12 @@ aws cloudformation deploy \
 ✅ **Verify:** Get RDS endpoint
 ```bash
 aws rds describe-db-instances \
-  --query "DBInstances[?DBInstanceIdentifier==\`${PROJECT_NAME}-postgresql-${ENV}\`].Endpoint.Address" \
-  --output text
+  --query "DBInstances[?DBInstanceIdentifier==\`${CANOPY_PROJECT_NAME}-postgresql-${CANOPY_ENV}\`].Endpoint.Address" \
+  --output text \
+  --no-cli-pager
 ```
-#### **Expected:** Endpoint like `${PROJECT_NAME}-postgresql-${ENV}.abc123.us-east-1.rds.amazonaws.com`
+**Expected:** Endpoint like `${CANOPY_PROJECT_NAME}-postgresql-${CANOPY_ENV}.abc123.us-east-1.rds.amazonaws.com`
+
 ---
 
 ### Step 7: Database Configuration
@@ -468,16 +473,14 @@ Use the automated Python deployment script:
 
 ```bash
 # Navigate to the python script
-cd ~/dataHub/datahub-development/db/postgres/db-create-scripts
+cd ${CANOPY_HOME}/datahub-development/db/postgres/db-create-scripts
 
-python deploy_to_rds.py --project-name <project-name> --env <env> --region <region> --profile <profile>
+python deploy_to_rds.py --project-name ${CANOPY_PROJECT_NAME} --env ${CANOPY_ENV} --region ${AWS_REGION} --profile ${AWS_PROFILE}
 
-# Deploy database schema to dev environment
-python deploy_to_rds.py --project-name ${PROJECT_NAME} --env dev --region us-east-1 --profile datahub-rep
-
-# Examples for other environments:
-# python deploy_to_rds.py --project-name datahub --env test --region us-east-1 --profile datahub-rep
-# python deploy_to_rds.py --project-name datahub --env prod --region us-east-1 --profile datahub-rep
+# Examples for different environments:
+# python deploy_to_rds.py --project-name canopy --env dev --region us-east-1 --profile datahub-rep
+# python deploy_to_rds.py --project-name canopy --env test --region us-east-1 --profile datahub-rep
+# python deploy_to_rds.py --project-name canopy --env prod --region us-east-1 --profile datahub-rep
 ```
 
 **Script Parameters:**
@@ -500,20 +503,21 @@ python deploy_to_rds.py --project-name ${PROJECT_NAME} --env dev --region us-eas
 
 ⏳ **Wait time:** ~5-10 minutes for all scripts to complete
 
-✅ **Verify:** The script will confirm successful deployment and show table counts.
+✅ **Verify:** The script will confirm the successful deployment and show table counts.
 
 #### Post-Deployment: Update Secrets Manager
 
-After database deployment, save the RDS endpoint as `RDSEndpoint` in `parameters-${ENV}.json` before deploying the SecretsManager stack. `SecretsManager.yaml` reads `RDSEndpoint` as a CloudFormation parameter and injects it directly into the secret, so no manual editing of the secret is required.
+After database deployment, save the RDS endpoint as `RDSEndpoint` in `parameters-${CANOPY_ENV}.json` before deploying the SecretsManager stack. `SecretsManager.yaml` reads `RDSEndpoint` as a CloudFormation parameter and injects it directly into the secret, so no manual editing of the secret is required.
 
 ```json
-"RDSEndpoint": "my-db.cyhmos66o8v8.us-east-1.rds.amazonaws.com"
+"RDSEndpoint": "my-db.myserver.us-east-1.rds.amazonaws.com"
 ```
 
 > Replace the placeholder above with the actual endpoint shown at the end of Step 6.
 
-⚠️ **Note:** Step 6 will display the RDS endpoint. Save it in `parameters-${ENV}.json` as shown above — do **not** edit Secrets Manager directly.
+⚠️ **Note:** Step 6 will display the RDS endpoint. Save it in `parameters-${CANOPY_ENV}.json` as shown above — do **not** edit Secrets Manager directly.
 
+---
 ---
 
 ### Step 7b: Configure pg_cron Scheduler *(Optional)*
@@ -533,15 +537,13 @@ Creates DNS records and routing configurations.
 ⚠️ **Note:** This stack is organization-dependent. Consult with your DNS administrator before deploying.
 
 ```bash
-cd ~/dataHub/datahub-cloud-replication
-
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-Route53-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-Route53-${CANOPY_ENV} \
   --template-file modules/Route53.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
 
 💡 **Skip this step** if you don't have Route53 hosted zones configured.
@@ -554,20 +556,20 @@ aws cloudformation deploy \
 Creates monitoring, logging, and alerting infrastructure.
 
 ```bash
-cd ~/dataHub/datahub-cloud-replication 
-
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-CloudWatch-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-CloudWatch-${CANOPY_ENV} \
   --template-file modules/CloudWatch.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
 
 ✅ **Verify:** List log groups
 ```bash
-aws logs describe-log-groups --query "logGroups[?contains(logGroupName, \`${PROJECT_NAME}\`)].logGroupName"
+aws logs describe-log-groups \
+  --query "logGroups[?contains(logGroupName, \`${CANOPY_PROJECT_NAME}\`)].logGroupName" \
+  --no-cli-pager
 ```
 
 ---
@@ -579,12 +581,12 @@ Creates SQS queues for message processing.
 
 ```bash
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-SQS-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-SQS-${CANOPY_ENV} \
   --template-file modules/SQS.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
 
 ---
@@ -596,27 +598,34 @@ Creates ECR repositories for container images.
 
 ```bash
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-ECR-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-ECR-${CANOPY_ENV} \
   --template-file modules/ECR.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
 
 **What's created:**
 - ECR repositories for each microservice:
-  - `${PROJECT_NAME}-user-service/{ENV}`
-  - `${PROJECT_NAME}-submission-service/{ENV}`
-  - `${PROJECT_NAME}-report-service/{ENV}`
-  - `${PROJECT_NAME}-download-service/{ENV}`
-  - `${PROJECT_NAME}-entity-service/{ENV}`
-  - `${PROJECT_NAME}-search-service/{ENV}`
-  - `${PROJECT_NAME}-ui/{ENV}`
+  - `${CANOPY_PROJECT_NAME}-approved-data-service/{CANOPY_ENV}`
+  - `${CANOPY_PROJECT_NAME}-download-service/{CANOPY_ENV}`
+  - `${CANOPY_PROJECT_NAME}-entityservice/{CANOPY_ENV}`
+  - `${CANOPY_PROJECT_NAME}-keycloak/{CANOPY_ENV}`
+  - `${CANOPY_PROJECT_NAME}-opensearchrefresh/{CANOPY_ENV}`
+  - `${CANOPY_PROJECT_NAME}-publicationscript/{CANOPY_ENV}`
+  - `${CANOPY_PROJECT_NAME}-report-service/{CANOPY_ENV}`
+  - `${CANOPY_PROJECT_NAME}-reporter/{CANOPY_ENV}`
+  - `${CANOPY_PROJECT_NAME}-search/{CANOPY_ENV}`
+  - `${CANOPY_PROJECT_NAME}-submission-service/{CANOPY_ENV}`
+  - `${CANOPY_PROJECT_NAME}-ui/{CANOPY_ENV}`
+  - `${CANOPY_PROJECT_NAME}-user-service/{CANOPY_ENV}`
 
 ✅ **Verify:** List ECR repositories
 ```bash
-aws ecr describe-repositories --query "repositories[?contains(repositoryName, \`${PROJECT_NAME}\`)].repositoryName"
+aws ecr describe-repositories \
+  --query "repositories[?contains(repositoryName, \`${CANOPY_PROJECT_NAME}\`)].repositoryName" \
+  --no-cli-pager
 ```
 
 ---
@@ -630,11 +639,11 @@ Creates OpenSearch domain for search and analytics.
 
 ⚠️ **Security:** Change the default OpenSearch password before deployment!
 
-Edit `parameters-${ENV}.json` and update:
+Edit `parameters-${CANOPY_ENV}.json` and update:
 ```json
 {
   "OpenSearchUsername": "opensearch",
-  "OpenSearchPassword": "YourSecurePassword@2026"
+  "OpenSearchPassword": "ChangeMe@2026"
 }
 ```
 
@@ -648,12 +657,12 @@ Edit `parameters-${ENV}.json` and update:
 
 ```bash
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-OpenSearch-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-OpenSearch-${CANOPY_ENV} \
   --template-file modules/OpenSearch.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
 
 ⏳ **Wait time:** 15-20 minutes for OpenSearch domain to be created
@@ -661,9 +670,10 @@ aws cloudformation deploy \
 ✅ **Verify:** Get OpenSearch endpoint
 ```bash
 aws opensearch describe-domain \
-  --domain-name ${PROJECT_NAME}-opensearch-${ENV} \
+  --domain-name ${CANOPY_PROJECT_NAME}-opensearch-${CANOPY_ENV} \
   --query 'DomainStatus.Endpoints.vpc' \
-  --output text
+  --output text \
+  --no-cli-pager
 ```
 **Expected:** Endpoint like `vpc-datahub-opensearch-dev-abc123.us-east-1.es.amazonaws.com`
 
@@ -699,18 +709,20 @@ Also update these email values for your environment before deployment:
 
 ```bash
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-SecretsManager-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-SecretsManager-${CANOPY_ENV} \
   --template-file modules/SecretsManager.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
 
 ✅ **Verify:** Check secret was created
 
 ```bash
-aws secretsmanager describe-secret --secret-id ${PROJECT_NAME}_application_${ENV}
+aws secretsmanager describe-secret \
+  --secret-id ${CANOPY_PROJECT_NAME}_application_${CANOPY_ENV} \
+  --no-cli-pager
 ```
 
 ---
@@ -763,12 +775,10 @@ open -a Docker
 docker info
 
 # Navigate to python script folder 
-cd ~/dataHub/datahub-development/opensearch/opensearch_reindex
+cd ${CANOPY_HOME}/datahub-development/opensearch/opensearch_reindex
 
 # Create Lambda layer with ARM64-compatible dependencies
-python create_layer.py [layer-name] [region] [profile]
-# For example:
-python create_layer.py dependency-layer us-east-1 datahub-rep
+python create_layer.py dependency-layer ${AWS_REGION} ${AWS_PROFILE}
 ```
 
 **What this does:**
@@ -782,10 +792,17 @@ python create_layer.py dependency-layer us-east-1 datahub-rep
 ✅ **Verify:** Note the Layer ARN from the output, such as:
 ```
 Layer ARN:
-  arn:aws:lambda:us-east-1:123456789012:layer:dependency-layer:1
+  arn:aws:lambda:us-east-1:accountId:layer:dependency-layer:1
+```
+#### Post-Operation: Update parameters file
+
+After the dependency layer was published, save the ARN as `LambdaDependencyLayerArn` in `parameters-${CANOPY_ENV}.json`.
+
+```json
+"LambdaDependencyLayerArn": "REPLACEME"
 ```
 
-**⚠️ Important:** Ensure this ARN matches what's in `datahub-cloud-replication/modules/Lambda.yaml` at line 274. If different, update [Lambda.yaml](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/Lambda.yaml) with the new ARN.
+> Replace the placeholder above with the actual arn shown at the end of Step 14a.
 
 ---
 
@@ -796,7 +813,7 @@ Package and upload Lambda function code to S3.
 
 **Script Usage:**
 ```bash
-python deploy_lambda.py <project-name> <env> <unique-id>
+python deploy_lambda.py ${CANOPY_PROJECT_NAME} ${CANOPY_ENV} ${CANOPY_UNIQUE_ID}
 ```
 
 **Parameters:**
@@ -804,21 +821,7 @@ python deploy_lambda.py <project-name> <env> <unique-id>
 - **project-name**: Project name (e.g., `datahub`, `canopy`) - **REQUIRED**
 - **env**: `dev`, `test`, or `prod` - **REQUIRED**
 - **DataHubUniqueId**: Unique identifier for S3 bucket (e.g., `stanford`) - **REQUIRED**
-  - S3 bucket: `${PROJECT_NAME}-lambda-artifacts-{DataHubUniqueId}-{env}`
-
-
-```bash
-# Still in opensearch_reindex directory
-
-# Upload to dev environment
-python deploy_lambda.py datahub dev stanford
-
-# Upload to test environment
-python deploy_lambda.py datahub test stanford
-
-# Upload to prod environment
-python deploy_lambda.py datahub prod stanford
-```
+  - S3 bucket: `${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}`
 
 **What this does:**
 1. Validates required files exist
@@ -828,20 +831,20 @@ python deploy_lambda.py datahub prod stanford
    - `variable_index_mapping.json`
    - `autocomplete_index_mapping.json`
 3. Creates ZIP (should be <100KB)
-4. Uploads to S3: `s3://${PROJECT_NAME}-lambda-artifacts-{DataHubUniqueId}-{ENV}/opensearch-refresh/`
+4. Uploads to S3: `s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}/opensearch-refresh/`
 
 ⚠️ **Note:** Dependencies are NOT included (they're in the layer from Step 14a)
 
 ✅ **Verify:** Check S3 upload
 ```bash
-aws s3 ls s3://${PROJECT_NAME}-lambda-artifacts-${DataHubUniqueId}-${ENV}/opensearch-refresh/
+aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}/opensearch-refresh/
 ```
 **Expected:** Should show `opensearch-refresh-lambda.zip`
 
 ### Step 15: Upload Email Service Lambda Code
 
 ```bash
-cd ~/dataHub/datahub-service-email
+cd ${CANOPY_HOME}/datahub-service-email
 
 # Build Spring Boot application for Lambda
 mvn clean package -DskipTests
@@ -852,7 +855,7 @@ aws s3 cp target/datahub-service-email-0.0.1-SNAPSHOT-aws.jar \
 ```
 ✅ **Verify:** Check S3 upload
 ```bash
-aws s3 ls s3://${PROJECT_NAME}-lambda-artifacts-${DataHubUniqueId}-${ENV}/email-service/
+aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}/email-service/
 ```
 **Expected:** Should show `datahub-service-email-0.0.1-SNAPSHOT-aws.jar`
 ---
@@ -863,24 +866,24 @@ aws s3 ls s3://${PROJECT_NAME}-lambda-artifacts-${DataHubUniqueId}-${ENV}/email-
 Creates Lambda functions for OpenSearch indexing and email service.
 
 ```bash
-cd ~/dataHub/datahub-cloud-replication
+cd ${CANOPY_HOME}/datahub-cloud-replication
 
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-Lambda-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-Lambda-${CANOPY_ENV} \
   --template-file modules/Lambda.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
 
 **What's created:**
-- Lambda function: `${PROJECT_NAME}-OpenSearchRefresh`
+- Lambda function: `${CANOPY_PROJECT_NAME}-OpenSearchRefresh`
   - Runtime: Python 3.11 on ARM64
   - VPC: Deployed in private subnets
   - Attached layer from Step 14a
   - Code from S3 (Step 14b)
-- Lambda function: `${PROJECT_NAME}-EmailService`
+- Lambda function: `${CANOPY_PROJECT_NAME}-EmailService`
   - Runtime: Java 17
   - Code from S3
 - IAM roles and permissions
@@ -889,14 +892,16 @@ aws cloudformation deploy \
 
 ✅ **Verify:** Check Lambda functions exist
 ```bash
-aws lambda list-functions --query "Functions[?contains(FunctionName, \`${PROJECT_NAME}\`)].FunctionName"
+aws lambda list-functions \
+  --query "Functions[?contains(FunctionName, \`${CANOPY_PROJECT_NAME}\`)].FunctionName" \
+  --no-cli-pager
 ```
 
 #### Test OpenSearch Lambda (Optional)
 
 ```bash
 aws lambda invoke \
-  --function-name ${PROJECT_NAME}-OpenSearchRefresh \
+  --function-name ${CANOPY_PROJECT_NAME}-OpenSearchRefresh \
   --payload '{}' \
   response.json
 
@@ -912,29 +917,31 @@ Creates ECS cluster, services, and container definitions for all microservices.
 
 ```bash
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-ECS-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-ECS-${CANOPY_ENV} \
   --template-file modules/ECS.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
 
 ⏳ **Wait time:** 15-20 minutes for all services to start
 
 **What's created:**
 - ECSr sevices (1 per microservice):
-  - User Service
-  - Submission Service
-  - Report Service
   - Download Service
   - Entity Service
+  - Report Service
   - Search Service
-  - Frontend
+  - Submission Service
+  - User Service
+  - UI
 
 ✅ **Verify:** Check ECS services are running
 ```bash
-aws ecs list-services --cluster ${PROJECT_NAME}-Services-${ENV}
+aws ecs list-services \
+  --cluster ${CANOPY_PROJECT_NAME}-Services-${CANOPY_ENV} \
+  --no-cli-pager
 ```
 
 ### Step 18: Deploy SES Stack
@@ -961,12 +968,12 @@ Edit [`modules/SES.yaml`](https://github.com/bmir-datahub/datahub-cloud-replicat
 
 ```bash
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-SES-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-SES-${CANOPY_ENV} \
   --template-file modules/SES.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
 
 ⚠️ **Important:** Email identities must be verified before emails can be sent. Complete Step 18b below.
