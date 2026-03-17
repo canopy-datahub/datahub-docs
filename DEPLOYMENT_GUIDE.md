@@ -189,6 +189,8 @@ aws --version
 4. Download and save the credentials securely
 5. Replace `YOUR_ACCESS_KEY_ID` and `YOUR_SECRET_ACCESS_KEY` below
 
+⚠️ **Important:** In the following guide `datahub-rep` is the AWS profile name. Feel free to choose another name, but use it consistently throughout the guide. 
+
 ```bash
 # Create AWS credentials file
 mkdir -p ~/.aws
@@ -207,7 +209,7 @@ region=us-east-1
 output=json
 EOL
 ```
-*IMPORTANT: Unset any existing AWS credentials from environment*
+*IMPORTANT: Unset any existing AWS credentials from the environment*
 ```bash
 unset AWS_ACCESS_KEY_ID
 unset AWS_SECRET_ACCESS_KEY
@@ -240,6 +242,48 @@ aws iam attach-user-policy \
 
 ### Step 2: Set Environment Variables
 **Time:** 5 minutes
+
+⚠️ **SHORTCUT:**
+This guide will introduce several environment variables that will be used throughout the deployment.
+We strongly suggest that you set all of these up at this stage by creating a file called `set-canopy-env.sh` or similar, with the following content:
+
+```bash
+#!/bin/bash
+
+unset AWS_ACCESS_KEY_ID
+unset AWS_SECRET_ACCESS_KEY
+unset AWS_SESSION_TOKEN
+
+export AWS_PROFILE=datahub-rep
+export AWS_REGION=us-east-1
+
+export CANOPY_ENV=dev
+export CANOPY_HOME=~/DATAHUB
+export CANOPY_AWS_PARAMETER_FILE=${CANOPY_HOME}/datahub-cloud-replication/parameters-${CANOPY_ENV}.json
+export CANOPY_PROJECT_NAME=$(cat ${CANOPY_AWS_PARAMETER_FILE} | grep -o '"ProjectName": "[^"]*"' | cut -d'"' -f4)
+export CANOPY_UNIQUE_ID=$(cat ${CANOPY_AWS_PARAMETER_FILE} | grep -o '"DataHubUniqueId": "[^"]*"' | cut -d'"' -f4)
+
+echo ""
+echo "Environment     : $CANOPY_ENV"
+echo "Project Home    : $CANOPY_HOME"
+echo "Project Name    : $CANOPY_PROJECT_NAME"
+echo "Canopy Unique Id: $CANOPY_UNIQUE_ID"
+echo "AWS Profile     : $AWS_PROFILE"
+echo "AWS Region      : $AWS_REGION"
+echo ""
+```
+
+⚠️ **Important:** Execute this file to set all the environment variables, any time when you make a significant change to the `params-${CANOPY_ENV}.json` file. 
+Use: 
+```bash
+source set-canopy-env.sh
+```
+---
+
+⚠️ **TO UPDATE:**
+The current guide still sets the above environment variables manually, one by one during the first 4 steps.
+These unnecessary blocks will be soon removed from the guide.
+---
 
 Set environment variables that will be used throughout the deployment:
 
