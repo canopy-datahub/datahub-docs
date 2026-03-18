@@ -560,8 +560,6 @@ After database deployment, save the RDS endpoint as `RDSEndpoint` in `parameters
 > Replace the placeholder above with the actual endpoint shown at the end of Step 6.
 
 ⚠️ **Note:** Step 6 will display the RDS endpoint. Save it in `parameters-${CANOPY_ENV}.json` as shown above — do **not** edit Secrets Manager directly.
-
----
 ---
 
 ### Step 7b: Configure pg_cron Scheduler *(Optional)*
