@@ -1070,12 +1070,12 @@ Creates EventBridge rules to automatically trigger SQS processing when files are
 
 ```bash
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-EventBridge-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-EventBridge-${CANOPY_ENV} \
   --template-file modules/EventBridge.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
 
 **What's created:**
@@ -1106,7 +1106,7 @@ For a stable, static SFTP endpoint address that doesn't change on redeploy:
 aws ec2 allocate-address \
   --domain vpc \
   --profile ${AWS_PROFILE} \
-  --tag-specifications 'ResourceType=elastic-ip,Tags=[{Key=Name,Value='${PROJECT_NAME}'-sftp-'${ENV}'},{Key=projectname,Value='${PROJECT_NAME}'},{Key=environment,Value='${ENV}'}]'
+  --tag-specifications 'ResourceType=elastic-ip,Tags=[{Key=Name,Value='${CANOPY_PROJECT_NAME}'-sftp-'${CANOPY_ENV}'},{Key=projectname,Value='${CANOPY_PROJECT_NAME}'},{Key=environment,Value='${CANOPY_ENV}'}]'
 
 # Note the AllocationId from the output (format: eipalloc-xxxxxxxx)
 ```
@@ -1118,23 +1118,23 @@ cd ~/dataHub/datahub-cloud-replication
 
 # Without Elastic IP:
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-TransferFamily-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-TransferFamily-${CANOPY_ENV} \
   --template-file modules/TransferFamily.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 
 # With Elastic IP — first set ElasticIPAllocationId in parameters-${ENV}.json:
 #   "ElasticIPAllocationId": "eipalloc-xxxxxxxx"
 # Then deploy (same command as above):
 aws cloudformation deploy \
-  --stack-name ${PROJECT_NAME}-TransferFamily-${ENV} \
+  --stack-name ${CANOPY_PROJECT_NAME}-TransferFamily-${CANOPY_ENV} \
   --template-file modules/TransferFamily.yaml \
-  --parameter-overrides file://parameters-${ENV}.json \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
   --capabilities CAPABILITY_NAMED_IAM \
   --profile ${AWS_PROFILE} \
-  --tags projectname=${PROJECT_NAME} environment=${ENV}
+  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
 
 **What's created:**
@@ -1160,39 +1160,39 @@ Each data submitter needs their own SFTP account. **Repeat this step for every s
 
 ```bash
 # Set these for each submitter
-SFTP_USERNAME="testuser-${ENV}"       # becomes the SFTP login name, e.g. jsmith-dev
-SFTP_PASSWORD="TheirStrongPassword"
+CANOPY_SFTP_USERNAME="testuser-${CANOPY_ENV}"       # becomes the SFTP login name, e.g. jsmith-dev
+CANOPY_SFTP_PASSWORD="TheirStrongPassword"
 
 # Get the shared IAM role ARN (same for all submitters)
 ROLE_ARN=$(aws iam get-role \
-  --role-name ${PROJECT_NAME}-CustomSFTPTransferRole-${ENV} \
+  --role-name ${CANOPY_PROJECT_NAME}-CustomSFTPTransferRole-${CANOPY_ENV} \
   --profile ${AWS_PROFILE} \
   --query 'Role.Arn' --output text)
 
 # Create the secret in Secret Manager
 aws secretsmanager create-secret \
-  --name "SFTP/${SFTP_USERNAME}" \
-  --description "SFTP credentials for ${SFTP_USERNAME}" \
+  --name "SFTP/${CANOPY_PROJECT_NAME}-${CANOPY_SFTP_USERNAME}" \
+  --description "SFTP credentials for ${CANOPY_SFTP_USERNAME}" \
   --secret-string "{
-    \"Password\": \"${SFTP_PASSWORD}\",
+    \"Password\": \"${CANOPY_SFTP_PASSWORD}\",
     \"Role\": \"${ROLE_ARN}\",
-    \"HomeDirectory\": \"/${PROJECT_NAME}-sftp-${DataHubUniqueId}-${ENV}/${ENV}/${SFTP_USERNAME}\",
+    \"HomeDirectory\": \"/${CANOPY_PROJECT_NAME}-sftp-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}/${CANOPY_ENV}/${CANOPY_SFTP_USERNAME}\",
     \"Policy\": \"{\\\"Version\\\":\\\"2012-10-17\\\",\\\"Statement\\\":[{\\\"Sid\\\":\\\"AllowListingOfUserFolder\\\",\\\"Action\\\":[\\\"s3:ListBucket\\\"],\\\"Effect\\\":\\\"Allow\\\",\\\"Resource\\\":[\\\"arn:aws:s3:::\${transfer:HomeBucket}\\\"],\\\"Condition\\\":{\\\"StringLike\\\":{\\\"s3:prefix\\\":[\\\"\${transfer:HomeFolder}/*\\\",\\\"\${transfer:HomeFolder}\\\"]}}},{\\\"Sid\\\":\\\"HomeDirObjectAccess\\\",\\\"Effect\\\":\\\"Allow\\\",\\\"Action\\\":[\\\"s3:PutObject\\\",\\\"s3:GetObject\\\",\\\"s3:DeleteObject\\\",\\\"s3:DeleteObjectVersion\\\",\\\"s3:GetObjectVersion\\\",\\\"s3:GetObjectACL\\\",\\\"s3:PutObjectACL\\\"],\\\"Resource\\\":\\\"arn:aws:s3:::\${transfer:HomeDirectory}*\\\"}]}\"
   }" \
   --profile ${AWS_PROFILE} \
-  --tags Key=projectname,Value=${PROJECT_NAME} Key=environment,Value=${ENV}
+  --tags Key=projectname,Value=${CANOPY_PROJECT_NAME} Key=environment,Value=${CANOPY_ENV}
 ```
 
 > - The `HomeDirectory` path `/{bucket}/{env}/{username}` is required — it determines the S3 key prefix that EventBridge watches for.
 > - The `Policy` scopes the session to the user's own folder only. The `${transfer:...}` placeholders are resolved by Transfer Family at login time.
-> - The SFTP login username equals `SFTP_USERNAME` (the secret name minus the `SFTP/` prefix).
+> - The SFTP login username equals `CANOPY_SFTP_USERNAME` (the secret name minus the `SFTP/` prefix).
 
 #### Step 20d: Register the SFTP User in the Database ⚠️ Required
 
 **Repeat this step for every submitter.** The platform identifies which user made an upload by matching the S3 path against `sftp_path` in the `users` table. The submitter must already have a platform user account (registered on the platform) before this step.
 
 ```sql
--- Pattern: '{env}/{SFTP_USERNAME}'
+-- Pattern: '{CANOPY_ENV}/{CANOPY_SFTP_USERNAME}'
 UPDATE users
 SET sftp_path = 'dev/testuser-dev'
 WHERE email_address = 'test@test.com';
@@ -1205,9 +1205,10 @@ First, get the public IP of the Elastic IP attached to the server:
 ```bash
 aws ec2 describe-addresses \
   --profile ${AWS_PROFILE} \
-  --filters "Name=tag:Name,Values=${PROJECT_NAME}-sftp-${ENV}" \
+  --filters "Name=tag:Name,Values=${CANOPY_PROJECT_NAME}-sftp-${CANOPY_ENV}" \
   --query 'Addresses[0].PublicIp' \
-  --output text
+  --output text \
+  --no-cli-pager
 # e.g. 54.210.167.43
 ```
 
@@ -1216,18 +1217,18 @@ aws ec2 describe-addresses \
 | Field | Value |
 |---|---|
 | Host | `54.210.167.43` (public IP only — no `sftp://`, no username prefix) |
-| Username | `${SFTP_USERNAME}` |
+| Username | `${CANOPY_SFTP_USERNAME}` |
 | Password | password set in Step 20c |
 | Port | `22` |
 
 **Using the command line:**
 
 ```bash
-sftp -P 22 ${SFTP_USERNAME}@<PUBLIC_IP>
+sftp -P 22 ${CANOPY_SFTP_USERNAME}@<PUBLIC_IP>
 # Enter the password set in Step 20c
 
 pwd
-# Expected: /{project}-sftp-{id}-{env}/{env}/{SFTP_USERNAME}
+# Expected: /{project}-sftp-{id}-{env}/{env}/{CANOPY_SFTP_USERNAME}
 
 put myfiles.zip
 exit
@@ -1254,7 +1255,7 @@ Before proceeding, ensure:
 The UI build requires environment-specific values baked into the Next.js bundle. Set these up **before** running `deploy.py`.
 
 ```bash
-cd ~/dataHub/datahub-ui-main
+cd ${CANOPY_HOME}/datahub-ui-main
 
 # Copy the example file and fill in your values
 cp .env.example .env.local
@@ -1277,7 +1278,7 @@ NODE_TLS_REJECT_UNAUTHORIZED=1
 #### Step 21b: Install Python Dependencies
 
 ```bash
-cd ~/dataHub/datahub-deployment-scripts
+cd ${CANOPY_HOME}/datahub-deployment-scripts
 
 # Install boto3 for deploy.py script
 pip install boto3
@@ -1291,19 +1292,19 @@ pip install -r requirements-deploy.txt
 The `deploy.py` script automates the entire build and deployment process. For the UI service it automatically reads `.env.local` and passes the values as Docker build args — no extra flags needed.
 
 ```bash
-cd ~/dataHub/datahub-deployment-scripts
+cd ${CANOPY_HOME}/datahub-deployment-scripts
 
 # Usage: python deploy.py <project-name> <service-name> <environment> [image-tag]
 # project-name, service-name and environment are required; image-tag defaults to 'latest'.
 
 # Deploy each service (one at a time)
-python deploy.py ${PROJECT_NAME} user-service ${ENV}
-python deploy.py ${PROJECT_NAME} submission-service ${ENV}
-python deploy.py ${PROJECT_NAME} report-service ${ENV}
-python deploy.py ${PROJECT_NAME} download-service ${ENV}
-python deploy.py ${PROJECT_NAME} entity-service ${ENV}
-python deploy.py ${PROJECT_NAME} search-service ${ENV}
-python deploy.py ${PROJECT_NAME} ui ${ENV}     
+python deploy.py ${CANOPY_PROJECT_NAME} user-service ${CANOPY_ENV}
+python deploy.py ${CANOPY_PROJECT_NAME} submission-service ${CANOPY_ENV}
+python deploy.py ${CANOPY_PROJECT_NAME} report-service ${CANOPY_ENV}
+python deploy.py ${CANOPY_PROJECT_NAME} download-service ${CANOPY_ENV}
+python deploy.py ${CANOPY_PROJECT_NAME} entity-service ${CANOPY_ENV}
+python deploy.py ${CANOPY_PROJECT_NAME} search-service ${CANOPY_ENV}
+python deploy.py ${CANOPY_PROJECT_NAME} ui ${CANOPY_ENV}     
 ```
 
 **What the script does for EACH service:**
@@ -1324,14 +1325,14 @@ python deploy.py ${PROJECT_NAME} ui ${ENV}
 #### Progress Tracking
 
 You can check deployment progress in AWS Console:
-- **ECS Console** → Clusters → `${PROJECT_NAME}-Services-{ENV}` → Services
+- **ECS Console** → Clusters → `${CANOPY_PROJECT_NAME}-Services-{CANOPY_ENV}` → Services
 - Watch for "Running count" to reach "Desired count" (1/1)
 
 ✅ **Verify:** Check all services are deployed
 ```bash
 aws ecs describe-services \
-  --cluster ${PROJECT_NAME}-Services-${ENV} \
-  --services $(aws ecs list-services --cluster ${PROJECT_NAME}-Services-${ENV} --query 'serviceArns' --output text) \
+  --cluster ${CANOPY_PROJECT_NAME}-Services-${CANOPY_ENV} \
+  --services $(aws ecs list-services --cluster ${CANOPY_PROJECT_NAME}-Services-${CANOPY_ENV} --query 'serviceArns' --output text) \
   --query 'services[*].{Name:serviceName,Running:runningCount,Desired:desiredCount,Status:status}' \
   --output table
 ```
