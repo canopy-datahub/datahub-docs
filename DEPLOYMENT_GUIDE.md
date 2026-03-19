@@ -381,12 +381,12 @@ echo "Canopy Unique Id: $CANOPY_UNIQUE_ID"
 - Example: `stanford-abc123`, `myorg-dev`, `acme-prod`
 
 **Bucket names that will be created:**
-- `${PROJECT_NAME}-upload-portal-{DataHubUniqueId}-{ENV}`
-- `${PROJECT_NAME}-sftp-{DataHubUniqueId}-{ENV}`
-- `${PROJECT_NAME}-review-{DataHubUniqueId}-{ENV}`
-- `${PROJECT_NAME}-default-{DataHubUniqueId}-{ENV}`
-- `${PROJECT_NAME}-lambda-artifacts-{DataHubUniqueId}-{ENV}`
-- `${PROJECT_NAME}-resources-{DataHubUniqueId}-{ENV}`
+- `${PROJECT_NAME}-upload-portal-${CANOPY_UNIQUE_ID}-$CANOPY_ENV}`
+- `${PROJECT_NAME}-sftp-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}`
+- `${PROJECT_NAME}-review-{$CANOPY_UNIQUE_ID}-{$CANOPY_ENV}`
+- `${PROJECT_NAME}-default-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}`
+- `${PROJECT_NAME}-lambda-artifacts-{$CANOPY_UNIQUE_ID}-${CANOPY_ENV}`
+- `${PROJECT_NAME}-resources-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}`
 
 #### Step 4b. Deploy into AWS
 ```bash
@@ -895,7 +895,7 @@ mvn clean package -DskipTests
 
 # Upload to S3
 aws s3 cp target/datahub-service-email-0.0.1-SNAPSHOT-aws.jar \
-  s3://${PROJECT_NAME}-lambda-artifacts-${DataHubUniqueId}-${ENV}/email-service/
+  s3://${PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${ENV}/email-service/
 ```
 ✅ **Verify:** Check S3 upload
 ```bash
@@ -1351,42 +1351,49 @@ Check that all stacks deployed successfully:
 # List all ${PROJECT_NAME} stacks
 aws cloudformation list-stacks \
   --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
-  --query "StackSummaries[?contains(StackName, \`${PROJECT_NAME}\`)].{Name:StackName,Status:StackStatus,Created:CreationTime}" \
-  --output table
+  --query "sort_by(StackSummaries[?contains(StackName, \`${CANOPY_PROJECT_NAME}\`)], &StackName)[].{Name:StackName,Status:StackStatus,Created:CreationTime}" \
+  --output table \
+  --no-cli-pager
 ```
 
 **Expected:** All stacks should show `CREATE_COMPLETE` or `UPDATE_COMPLETE`
 
 **Stacks you should see (14 total):**
-1. ${PROJECT_NAME}-Networking-{ENV}
-2. ${PROJECT_NAME}-S3-{ENV}
-3. ${PROJECT_NAME}-LoadBalancer-{ENV}
-4. ${PROJECT_NAME}-RDS-{ENV}
-5. ${PROJECT_NAME}-Route53-{ENV} (optional)
-6. ${PROJECT_NAME}-CloudWatch-{ENV}
-7. ${PROJECT_NAME}-SQS-{ENV}
-8. ${PROJECT_NAME}-ECR-{ENV}
-9. ${PROJECT_NAME}-OpenSearch-{ENV}
-10. ${PROJECT_NAME}-SecretsManager-{ENV}
-11. ${PROJECT_NAME}-ECS-{ENV}
-12. ${PROJECT_NAME}-Lambda-{ENV}
-13. ${PROJECT_NAME}-SES-{ENV}
-14. ${PROJECT_NAME}-EventBridge-{ENV}
+1. ${CANOPY_PROJECT_NAME}-CloudWatch-{CANOPY_ENV}
+2. ${CANOPY_PROJECT_NAME}-ECR-{CANOPY_ENV}
+3. ${CANOPY_PROJECT_NAME}-ECS-{CANOPY_ENV}
+4. ${CANOPY_PROJECT_NAME}-EventBridge-{CANOPY_ENV}
+5. ${CANOPY_PROJECT_NAME}-Keycloak-{CANOPY_ENV}
+6. ${CANOPY_PROJECT_NAME}-Lambda-{CANOPY_ENV}
+7. ${CANOPY_PROJECT_NAME}-LoadBalancer-{CANOPY_ENV}
+8. ${CANOPY_PROJECT_NAME}-Networking-{CANOPY_ENV}
+9. ${CANOPY_PROJECT_NAME}-OpenSearch-{CANOPY_ENV}
+10. ${CANOPY_PROJECT_NAME}-RDS-{CANOPY_ENV}
+11. ${CANOPY_PROJECT_NAME}-Route53-{CANOPY_ENV} (optional)
+12. ${CANOPY_PROJECT_NAME}-S3-{CANOPY_ENV}
+13. ${CANOPY_PROJECT_NAME}-SES-{CANOPY_ENV}
+14. ${CANOPY_PROJECT_NAME}-SQS-{CANOPY_ENV}
+15. ${CANOPY_PROJECT_NAME}-SecretsManager-{CANOPY_ENV}
+16. ${CANOPY_PROJECT_NAME}-TransferFamily-{CANOPY_ENV}
 
 **Services you should see running (7 total):**
 ```bash
 # Check ECS services
-aws ecs list-services --cluster ${PROJECT_NAME}-Services-${ENV} --query 'serviceArns' --output table
+aws ecs list-services \
+  --cluster ${CANOPY_PROJECT_NAME}-Services-${CANOPY_ENV} \
+  --query 'sort(serviceArns)' \
+  --output table \
+  --no-cli-pager
 ```
 
 Expected services:
-1. ${PROJECT_NAME}-UserService
-2. ${PROJECT_NAME}-SubmissionService
-3. ${PROJECT_NAME}-ReportService
-4. ${PROJECT_NAME}-DownloadService
-5. ${PROJECT_NAME}-EntityService
-6. ${PROJECT_NAME}-SearchService
-7. ${PROJECT_NAME}-Frontend (UI)
+1. ${CANOPY_PROJECT_NAME}-DownloadService
+2. ${CANOPY_PROJECT_NAME}-EntityService
+3. ${CANOPY_PROJECT_NAME}-ReportService
+4. {CANOPY_PROJECT_NAME}-Search
+5. ${CANOPY_PROJECT_NAME}-SubmissionService
+6. ${CANOPY_PROJECT_NAME}-UI
+7. ${CANOPY_PROJECT_NAME}-UserService
 
 ---
 
@@ -1397,7 +1404,7 @@ Test that the application is accessible and functioning:
 ```bash
 # Get ALB DNS name
 ALB_DNS=$(aws elbv2 describe-load-balancers \
-  --query "LoadBalancers[?contains(LoadBalancerName, \`${PROJECT_NAME}\`)].DNSName" \
+  --query "LoadBalancers[?contains(LoadBalancerName, \`${CANOPY_PROJECT_NAME}\`)].DNSName" \
   --output text)
 
 echo "Application URL: http://$ALB_DNS"
@@ -1433,7 +1440,7 @@ Open your browser and navigate to: `http://{ALB_DNS}`
 ```bash
 # Check stack events for errors
 aws cloudformation describe-stack-events \
-  --stack-name ${PROJECT_NAME}-{ENV}-{STACK-NAME} \
+  --stack-name ${CANOPY_PROJECT_NAME}-${CANOPY_ENV}-{STACK-NAME} \
   --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`]'
 ```
 
@@ -1455,7 +1462,10 @@ aws cloudformation describe-stack-events \
 
 ```bash
 # Check task logs
-aws logs tail /ecs/${PROJECT_NAME}-user-service --follow
+aws logs tail /aws/ecs/${CANOPY_PROJECT_NAME}-microservices-${CANOPY_ENV} \
+  --log-stream-name-prefix entity-service \
+  --follow \
+  --profile ${AWS_PROFILE}
 ```
 
 #### Lambda Function Fails
@@ -1470,7 +1480,7 @@ aws logs tail /ecs/${PROJECT_NAME}-user-service --follow
 
 ```bash
 # Check Lambda logs
-aws logs tail /aws/lambda/${PROJECT_NAME}-OpenSearchRefresh-${ENV} --follow
+aws logs tail /aws/lambda/${CANOPY_PROJECT_NAME}-OpenSearchRefresh-${CANOPY_ENV} --follow
 ```
 
 #### Database Connection Issues
@@ -1485,7 +1495,7 @@ aws logs tail /aws/lambda/${PROJECT_NAME}-OpenSearchRefresh-${ENV} --follow
 
 ```bash
 # Test connection from your machine
-psql -h $RDS_ENDPOINT -U datahub_user -d ${PROJECT_NAME}_${ENV}
+psql -h $RDS_ENDPOINT -U datahub_user -d ${CANOPY_PROJECT_NAME}_${CANOPY_ENV}
 ```
 
 #### OpenSearch Connection Issues
@@ -1500,7 +1510,7 @@ psql -h $RDS_ENDPOINT -U datahub_user -d ${PROJECT_NAME}_${ENV}
 
 ```bash
 # Check OpenSearch domain status
-aws opensearch describe-domain --domain-name ${PROJECT_NAME}-opensearch-${ENV} \
+aws opensearch describe-domain --domain-name ${CANOPY_PROJECT_NAME}-opensearch-${CANOPY_ENV} \
   --query 'DomainStatus.{Status:Processing,Health:DomainEndpointOptions.EnforceHTTPS}'
 ```
 
@@ -1529,7 +1539,7 @@ S3 buckets with content cannot be deleted by CloudFormation:
 
 ```bash
 # Match all buckets for this project/uniqueId/env
-pattern="^${PROJECT_NAME}-.*-${DataHubUniqueId}-${ENV}$"
+pattern="^${CANOPY_PROJECT_NAME}-.*-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}$"
 
 # List matching buckets
 aws s3 ls | awk '{print $3}' | grep -E "$pattern"
@@ -1543,15 +1553,15 @@ done
 
 #### Step 1b: Empty RDS
 
-Disable deletion protection on the RDS instance so the stack can delete it. If your RDS instance has a final snapshot or other retention settings that block deletion, adjust or remove them.
+Disable deletion protection on the RDS instance so the stack can delete it. If your RDS instance has a final snapshot or other retention settings that block deletion, adjust, or remove them.
 
 ```bash
 # List RDS instances for this project
-aws rds describe-db-instances --query "DBInstances[?contains(DBInstanceIdentifier, '${PROJECT_NAME}')].DBInstanceIdentifier" --output text
+aws rds describe-db-instances --query "DBInstances[?contains(DBInstanceIdentifier, '${CANOPY_PROJECT_NAME}')].DBInstanceIdentifier" --output text
 
 # Disable deletion protection (replace INSTANCE_ID with your RDS instance identifier)
 aws rds modify-db-instance \
-  --db-instance-identifier ${PROJECT_NAME}-${DataHubUniqueId}-${ENV}-postgres \
+  --db-instance-identifier ${CANOPY_PROJECT_NAME}-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}-postgres \
   --no-deletion-protection \
   --apply-immediately
 ```
@@ -1564,9 +1574,9 @@ ECR repositories with images cannot be deleted by CloudFormation. Delete all ima
 
 ```bash
 # List all DataHub ECR repositories
-aws ecr describe-repositories --query "repositories[?contains(repositoryName, '${PROJECT_NAME}')].repositoryName" --output text
+aws ecr describe-repositories --query "repositories[?contains(repositoryName, '${CANOPY_PROJECT_NAME}')].repositoryName" --output text
 
-for repo in $(aws ecr describe-repositories --query "repositories[?contains(repositoryName, '${PROJECT_NAME}')].repositoryName" --output text); do
+for repo in $(aws ecr describe-repositories --query "repositories[?contains(repositoryName, '${CANOPY_PROJECT_NAME}')].repositoryName" --output text); do
   echo "Emptying ECR repository: $repo"
   aws ecr batch-delete-image --repository-name $repo --image-ids $(aws ecr list-images --repository-name $repo --query 'imageIds[*]' --output json) 2>/dev/null || true
 done
@@ -1577,21 +1587,21 @@ done
 ```bash
 # Delete stacks in reverse dependency order
 stacks=(
-  "${PROJECT_NAME}-EventBridge-${ENV}"
-  "${PROJECT_NAME}-Lambda-${ENV}"
-  "${PROJECT_NAME}-SES-${ENV}"
-  "${PROJECT_NAME}-ECS-${ENV}"
-  "${PROJECT_NAME}-SecretsManager-${ENV}"
-  "${PROJECT_NAME}-OpenSearch-${ENV}"
-  "${PROJECT_NAME}-ECR-${ENV}"
-  "${PROJECT_NAME}-SQS-${ENV}"
-  "${PROJECT_NAME}-CloudWatch-${ENV}"
-  "${PROJECT_NAME}-Route53-${ENV}"
-  "${PROJECT_NAME}-Keycloak-${ENV}"
-  "${PROJECT_NAME}-RDS-${ENV}"
-  "${PROJECT_NAME}-LoadBalancer-${ENV}"
-  "${PROJECT_NAME}-S3-${ENV}"
-  "${PROJECT_NAME}-Networking-${ENV}"
+  "${CANOPY_PROJECT_NAME}-EventBridge-${CANOPY_ENV}"
+  "${CANOPY_PROJECT_NAME}-Lambda-${CANOPY_ENV}"
+  "${CANOPY_PROJECT_NAME}-SES-${CANOPY_ENV}"
+  "${CANOPY_PROJECT_NAME}-ECS-${CANOPY_ENV}"
+  "${CANOPY_PROJECT_NAME}-SecretsManager-${CANOPY_ENV}"
+  "${CANOPY_PROJECT_NAME}-OpenSearch-${CANOPY_ENV}"
+  "${CANOPY_PROJECT_NAME}-ECR-${CANOPY_ENV}"
+  "${CANOPY_PROJECT_NAME}-SQS-${CANOPY_ENV}"
+  "${CANOPY_PROJECT_NAME}-CloudWatch-${CANOPY_ENV}"
+  "${CANOPY_PROJECT_NAME}-Route53-${ENCANOPY_ENVV}"
+  "${CANOPY_PROJECT_NAME}-Keycloak-${CANOPY_ENV}"
+  "${CANOPY_PROJECT_NAME}-RDS-${CANOPY_ENV}"
+  "${CANOPY_PROJECT_NAME}-LoadBalancer-${CANOPY_ENV}"
+  "${CANOPY_PROJECT_NAME}-S3-${CANOPY_ENV}"
+  "${CANOPY_PROJECT_NAME}-Networking-${CANOPY_ENV}"
 )
 
 for stack in "${stacks[@]}"; do
@@ -1612,14 +1622,14 @@ echo "Cleanup complete!"
 ```bash
 # Check for remaining stacks
 aws cloudformation list-stacks \
-  --query "StackSummaries[?contains(StackName, \`${PROJECT_NAME}\`) && StackStatus != \`DELETE_COMPLETE\`].{Name:StackName,Status:StackStatus}" \
+  --query "StackSummaries[?contains(StackName, \`${CANOPY_PROJECT_NAME}\`) && StackStatus != \`DELETE_COMPLETE\`].{Name:StackName,Status:StackStatus}" \
   --output table
 
 # Check for remaining S3 buckets
-aws s3 ls | grep ${PROJECT_NAME}
+aws s3 ls | grep ${CANOPY_PROJECT_NAME}
 
 # Check for remaining ECR repositories
-aws ecr describe-repositories --query "repositories[?contains(repositoryName, \`${PROJECT_NAME}\`)].repositoryName"
+aws ecr describe-repositories --query "repositories[?contains(repositoryName, \`${CANOPY_PROJECT_NAME}\`)].repositoryName"
 ```
 
 ---
@@ -1645,7 +1655,7 @@ aws ecr describe-repositories --query "repositories[?contains(repositoryName, \`
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** January 2026  
-**Maintained by:** Stanford DataHub Team
+**Document Version:** 1.1  
+**Last Updated:** March 19, 2026 
+**Maintained by:** Stanford Canopy Team
 
