@@ -1411,10 +1411,10 @@ echo "Application URL: http://$ALB_DNS"
 curl -I http://$ALB_DNS
 
 # Test API endpoints
-curl http://$ALB_DNS/api/entity/v1/health
-curl http://$ALB_DNS/api/search/v1/health
-curl http://$ALB_DNS/api/user/v1/health
-curl http://$ALB_DNS/api/submission/v1/health
+curl http://$ALB_DNS/api/entity/v1/actuator/health
+curl http://$ALB_DNS/api/search/v1/actuator/health
+curl http://$ALB_DNS/api/user/v1/actuator/health
+curl http://$ALB_DNS/api/submission-service/v1/actuator/health
 ```
 
 **Expected responses:**
