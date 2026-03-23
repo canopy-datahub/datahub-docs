@@ -184,10 +184,11 @@ aws --version
 
 **Get AWS credentials:**
 1. Log into AWS Console
-2. Go to IAM → Users → Select your user
-3. Security Credentials tab → Create Access Key
-4. Download and save the credentials securely
-5. Replace `YOUR_ACCESS_KEY_ID` and `YOUR_SECRET_ACCESS_KEY` below
+2. If you don't have an IAM user yet, go to **IAM → Users → Create user**, enter a username (e.g. `datahub-dev`), and click **Create user**
+3. Go to IAM → Users → Select your user
+4. Security Credentials tab → Create Access Key
+5. Download and save the credentials securely
+6. Replace `YOUR_ACCESS_KEY_ID` and `YOUR_SECRET_ACCESS_KEY` below
 
 ⚠️ **Important:** In the following guide `datahub-rep` is the AWS profile name. Feel free to choose another name, but use it consistently throughout the guide. 
 
@@ -230,7 +231,9 @@ aws sts get-caller-identity
 
 #### Step 1c: Grant IAM Permissions
 
-The IAM user performing the deployment must have permissions for the following AWS services: CloudFormation, VPC, EC2, S3, Elastic Load Balancing (ALB), RDS, Route53, CloudWatch, SQS, ECR, OpenSearch Service, Secrets Manager, ECS, SES, Lambda, EventBridge, and IAM. Alternatively, for simplified setup, you may assign the IAM user the **AdministratorAccess** managed policy, which provides full access to all AWS services required by the system.
+The IAM user performing the deployment must have permissions for the following AWS services: CloudFormation, VPC, EC2, S3, Elastic Load Balancing (ALB), RDS, Route53, CloudWatch, SQS, ECR, OpenSearch Service, Secrets Manager, ECS, SES, Lambda, EventBridge, and IAM.
+
+If you followed Step 1b and attached **AdministratorAccess** during user creation, you can skip the command below. Otherwise, run it now to grant the required permissions:
 
 ```bash
 # Change to your own user name below
