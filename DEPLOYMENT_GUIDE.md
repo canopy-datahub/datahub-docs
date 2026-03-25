@@ -115,6 +115,12 @@ Use this checklist to track your progress. Each step links to detailed instructi
 - [ ] **Step 15:** [Upload Email Service Lambda Code](#step-15-upload-email-service-lambda-code) (5 min)
 - [ ] **Step 16:** [Deploy Lambda Stack](#step-16-deploy-lambda-stack) (10 min)
 - [ ] **Step 17:** [Deploy ECS Stack](#step-17-deploy-ecs-stack) (20 min)
+- [ ] **Step 17.1:** [Deploy Keycloak](#step-171-deploy-keycloak) (30 min)
+  - [ ] **Step 17.1a:** [Build and Push Keycloak Image](#step-171a-build-and-push-keycloak-image) (5 min)
+  - [ ] **Step 17.1b:** [Deploy Keycloak ECS Stack](#step-171b-deploy-keycloak-ecs-stack) (5 min)
+  - [ ] **Step 17.1c:** [Configure Keycloak Database SSL](#step-171c-configure-keycloak-database-ssl) (5 min)
+  - [ ] **Step 17.1d:** [Restart Keycloak Service](#step-171d-restart-keycloak-service) (5 min)
+  - [ ] **Step 17.1e:** [Initial Keycloak Configuration](#step-171e-initial-keycloak-configuration) (10 min)
 - [ ] **Step 18:** [Deploy SES Stack](#step-18-deploy-ses-stack) (20 min)
   - [ ] **Step 18a:** [Deploy SES Stack](#step-18a-deploy-ses-stack) (10 min)
   - [ ] **Step 18b:** [Configure SES Email Verification](#step-18b-configure-ses-email-verification)  (10 min)
@@ -989,6 +995,161 @@ aws ecs list-services \
   --no-cli-pager
 ```
 
+---
+
+### Step 17.1: Deploy Keycloak
+**Time:** 30 minutes
+
+Deploys Keycloak as a dedicated ECS service for identity and access management.
+
+#### Step 17.1a: Build and Push Keycloak Image
+**Time:** 5 minutes
+
+Build the Keycloak Docker image and push it to ECR:
+
+```bash
+cd ${CANOPY_HOME}/datahub-deployment-scripts
+python deploy.py ${CANOPY_PROJECT_NAME} keycloak ${CANOPY_ENV} 26.5.4
+```
+
+> The `26.5.4` argument pins the Keycloak image to a specific version tag.
+
+---
+
+#### Step 17.1b: Deploy Keycloak ECS Stack
+**Time:** 5 minutes
+
+Deploy the Keycloak-specific ECS service via CloudFormation:
+
+```bash
+cd ${CANOPY_HOME}/datahub-cloud-replication
+aws cloudformation deploy \
+  --stack-name ${CANOPY_PROJECT_NAME}-ECS-Keycloak-${CANOPY_ENV} \
+  --template-file modules/ECS-Keycloak.yaml \
+  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region ${AWS_REGION} \
+  --profile ${AWS_PROFILE}
+```
+
+---
+
+#### Step 17.1c: Configure Keycloak Database SSL
+**Time:** 5 minutes
+
+Connect to the RDS instance and disable SSL enforcement on the Keycloak master realm. Replace `<DBMasterUsername>` and `<DBName>` with the values from your RDS configuration:
+
+```bash
+psql -h $(aws rds describe-db-instances \
+  --query "DBInstances[?DBInstanceIdentifier==\`${CANOPY_PROJECT_NAME}-postgresql-${CANOPY_ENV}\`].Endpoint.Address" \
+  --output text --profile ${AWS_PROFILE}) \
+  -U <DBMasterUsername> \
+  -d <DBName>
+```
+
+Once connected, run:
+
+```sql
+SELECT id, name, ssl_required FROM realm;
+
+UPDATE realm SET ssl_required='NONE' WHERE name = 'master';
+```
+
+---
+
+#### Step 17.1d: Restart Keycloak Service
+**Time:** 5 minutes
+
+Force a new ECS deployment so Keycloak picks up the SSL configuration change:
+
+```bash
+aws ecs update-service \
+  --cluster ${CANOPY_PROJECT_NAME}-Services-${CANOPY_ENV} \
+  --service ${CANOPY_PROJECT_NAME}-Keycloak \
+  --force-new-deployment \
+  --profile $AWS_PROFILE \
+  --region $AWS_REGION
+```
+
+---
+
+#### Step 17.1e: Initial Keycloak Configuration
+**Time:** 10 minutes
+
+> ⚠️ **Note:** These manual steps will be replaced later by an automatic realm import.
+
+Log in to the Keycloak admin console (accessible via the ALB URL on the `/keycloak` path).
+
+##### Create Realm
+
+1. In the top-left dropdown, click **Create realm**
+2. Set **Realm name**: `CANOPY`
+3. Click **Create**
+
+##### Create Client
+
+Inside the `CANOPY` realm, go to **Clients → Create client**:
+
+**General settings:**
+
+| Field | Value |
+|---|---|
+| Client type | OpenID Connect |
+| Client ID | `canopy-client` |
+| Name | *(leave empty)* |
+| Description | *(leave empty)* |
+| Always display in UI | Off |
+
+**Capability config:**
+
+| Field | Value |
+|---|---|
+| Authentication flow | Standard flow |
+| PKCE Method | Choose... |
+
+**Login settings:**
+
+| Field | Value |
+|---|---|
+| Root URL | *(leave empty)* |
+| Home URL | *(leave empty)* |
+| Valid redirect URIs | `http://<YOUR_ALB_URL>/*` |
+| Web origins | `http://<YOUR_ALB_URL>` |
+
+Click **Save**.
+
+##### Create Users
+
+Inside the `CANOPY` realm, go to **Users → Create new user**.
+
+**User 1:**
+
+| Field | Value |
+|---|---|
+| Email verified | On |
+| Username | `alice.smith@example.edu` |
+| Email | `alice.smith@example.edu` |
+| First name | Alice |
+| Last name | Smith |
+
+- Click **Create**, then note the generated **UUID**.
+- Go to the **Credentials** tab → **Set password**: `******`, Temporary: **Off**
+
+**User 2:**
+
+| Field | Value |
+|---|---|
+| Email verified | On |
+| Username | `bob.johnson@example.edu` |
+| Email | `alice.smith@example.edu` |
+| First name | Bob |
+| Last name | Johnson |
+
+- Click **Create**, then note the generated **UUID**.
+- Go to the **Credentials** tab → **Set password**: `******`, Temporary: **Off**
+
+---
+
 ### Step 18: Deploy SES Stack
 **Time:** 10 minutes
 
@@ -1377,7 +1538,7 @@ aws cloudformation list-stacks \
 15. ${CANOPY_PROJECT_NAME}-SecretsManager-{CANOPY_ENV}
 16. ${CANOPY_PROJECT_NAME}-TransferFamily-{CANOPY_ENV}
 
-**Services you should see running (7 total):**
+**Services you should see running (8 total):**
 ```bash
 # Check ECS services
 aws ecs list-services \
@@ -1390,11 +1551,12 @@ aws ecs list-services \
 Expected services:
 1. ${CANOPY_PROJECT_NAME}-DownloadService
 2. ${CANOPY_PROJECT_NAME}-EntityService
-3. ${CANOPY_PROJECT_NAME}-ReportService
-4. {CANOPY_PROJECT_NAME}-Search
-5. ${CANOPY_PROJECT_NAME}-SubmissionService
-6. ${CANOPY_PROJECT_NAME}-UI
-7. ${CANOPY_PROJECT_NAME}-UserService
+3. ${CANOPY_PROJECT_NAME}-Keycloak
+4. ${CANOPY_PROJECT_NAME}-ReportService
+5. {CANOPY_PROJECT_NAME}-Search
+6. ${CANOPY_PROJECT_NAME}-SubmissionService
+7. ${CANOPY_PROJECT_NAME}-UI
+8. ${CANOPY_PROJECT_NAME}-UserService
 
 ---
 
@@ -1643,6 +1805,7 @@ aws ecr describe-repositories --query "repositories[?contains(repositoryName, \`
 - ✅ Complete VPC network infrastructure
 - ✅ PostgreSQL RDS database with full schema
 - ✅ OpenSearch domain for search functionality
+- ✅ Keycloak identity provider running on ECS
 - ✅ 7 microservices running on ECS Fargate
 - ✅ Application Load Balancer with routing
 - ✅ Lambda functions for sending emails and reindexing OpenSearch
