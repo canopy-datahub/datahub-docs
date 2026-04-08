@@ -153,17 +153,17 @@ mkdir -p ~/dataHub
 cd ~/dataHub
 
 # Clone all repositories
-git clone https://github.com/bmir-datahub/datahub-cloud-replication.git
-git clone https://github.com/bmir-datahub/datahub-deployment-scripts.git
-git clone https://github.com/bmir-datahub/datahub-development.git
-git clone https://github.com/bmir-datahub/datahub-service-download.git
-git clone https://github.com/bmir-datahub/datahub-service-email.git
-git clone https://github.com/bmir-datahub/datahub-service-entity.git
-git clone https://github.com/bmir-datahub/datahub-service-report.git
-git clone https://github.com/bmir-datahub/datahub-service-search.git
-git clone https://github.com/bmir-datahub/datahub-service-submission.git
-git clone https://github.com/bmir-datahub/datahub-service-user.git
-git clone https://github.com/bmir-datahub/datahub-ui-main.git
+git clone https://github.com/canopy-datahub/datahub-cloud-replication.git
+git clone https://github.com/canopy-datahub/datahub-deployment-scripts.git
+git clone https://github.com/canopy-datahub/datahub-development.git
+git clone https://github.com/canopy-datahub/datahub-service-download.git
+git clone https://github.com/canopy-datahub/datahub-service-email.git
+git clone https://github.com/canopy-datahub/datahub-service-entity.git
+git clone https://github.com/canopy-datahub/datahub-service-report.git
+git clone https://github.com/canopy-datahub/datahub-service-search.git
+git clone https://github.com/canopy-datahub/datahub-service-submission.git
+git clone https://github.com/canopy-datahub/datahub-service-user.git
+git clone https://github.com/canopy-datahub/datahub-ui-main.git
 
 # Verify all repositories are cloned
 ls -la
@@ -190,7 +190,7 @@ aws --version
 
 **Get AWS credentials:**
 1. Log into AWS Console
-2. If you don't have an IAM user yet, go to **IAM → Users → Create user**, enter a username (e.g. `datahub-dev`), and click **Create user**
+2. If you don't have an IAM user yet, go to **IAM → Users → Create user**, enter a username (e.g. `canopy-dev`), and click **Next**. On the permissions screen, select **Attach policies directly**, search for **AdministratorAccess**, select it, and click **Next**. Review the summary, then click **Create user**.
 3. Go to IAM → Users → Select your user
 4. Security Credentials tab → Create Access Key
 5. Download and save the credentials securely
@@ -454,7 +454,7 @@ The ALB DNS from Step 5 must be used in two places later, so the application and
 
    > Replace the placeholder above with the actual DNS name returned by the verify command above.
 
-2. **UI Dockerfile (Step 21)** – The frontend is built with **NEXT_PUBLIC_DEV_URL**. When you build the UI image in Step 21, pass the ALB URL in the [Dockerfile](https://github.com/bmir-datahub/datahub-ui-main/blob/feature/aws/Dockerfile)
+2. **UI Dockerfile (Step 21)** – The frontend is built with **NEXT_PUBLIC_DEV_URL**. When you build the UI image in Step 21, pass the ALB URL in the [Dockerfile](https://github.com/canopy-datahub/datahub-ui-main/blob/feature/aws/Dockerfile)
 
 
 ---
@@ -473,7 +473,7 @@ Before deploying, get your public IP and save it as `MyIP` in `parameters-${CANO
 curl -4 ifconfig.me
 ```
 
-Then set the value in `parameters-${ENV}.json`:
+Then set the value in `parameters-${CANOPY_ENV}.json`:
 
 ```json
 "MyIP": "203.0.113.5/32"
@@ -481,7 +481,17 @@ Then set the value in `parameters-${ENV}.json`:
 
 > Replace the IP above with the one returned by the `curl` command. The `/32` suffix is required.
 
-#### Step 6b. Deploy RDS Stack
+#### Step 6b. Set RDS Master Password
+
+The parameter file ships with a placeholder password. **Set it before deploying** — CloudFormation passes it to `RDS.yaml` via `--parameter-overrides` and uses it as the RDS master password at creation time.
+
+In `parameters-${CANOPY_ENV}.json`, replace the placeholder:
+
+```json
+"CanopyParamDbMasterPassword": "YourSecurePassword123!"
+```
+
+#### Step 6c. Deploy RDS Stack
 
 ```bash
 aws cloudformation deploy \
@@ -504,6 +514,15 @@ aws rds describe-db-instances \
 ```
 **Expected:** Endpoint like `${CANOPY_PROJECT_NAME}-postgresql-${CANOPY_ENV}.abc123.us-east-1.rds.amazonaws.com`
 
+#### Post-Deployment: Update Secrets Manager
+
+Save the RDS endpoint as `RDSEndpoint` in `parameters-${CANOPY_ENV}.json` before deploying the SecretsManager stack. `SecretsManager.yaml` reads `RDSEndpoint` as a CloudFormation parameter and injects it directly into the secret, so no manual editing of the secret is required.
+
+```json
+"RDSEndpoint": "my-db.myserver.us-east-1.rds.amazonaws.com"
+```
+
+> Replace the placeholder above with the actual endpoint shown at the end of Step 6b.
 ---
 
 ### Step 7: Database Configuration
@@ -517,7 +536,7 @@ This step creates the database schema, tables, views, and initial data in your R
 
 #### 📘 Detailed Documentation
 
-**See:** [README_RDS_DEPLOYMENT.md](https://github.com/bmir-datahub/datahub-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
+**See:** [README_RDS_DEPLOYMENT.md](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
 
 
 #### Quick Setup (Automated)
@@ -537,7 +556,7 @@ python deploy_to_rds.py --project-name ${CANOPY_PROJECT_NAME} --env ${CANOPY_ENV
 ```
 
 **Script Parameters:**
-- `--project-name`: Project name (e.g., `datahub`) - **REQUIRED**
+- `--project-name`: Project name (e.g., `canopy`) - **REQUIRED**
 - `--env`: Environment (`dev`, `test`, or `prod`) - default: `dev`
 - `--region`: AWS region - default: `us-east-1`
 - `--profile`: AWS profile name - default: `datahub-rep`
@@ -557,18 +576,6 @@ python deploy_to_rds.py --project-name ${CANOPY_PROJECT_NAME} --env ${CANOPY_ENV
 ⏳ **Wait time:** ~5-10 minutes for all scripts to complete
 
 ✅ **Verify:** The script will confirm the successful deployment and show table counts.
-
-#### Post-Deployment: Update Secrets Manager
-
-After database deployment, save the RDS endpoint as `RDSEndpoint` in `parameters-${CANOPY_ENV}.json` before deploying the SecretsManager stack. `SecretsManager.yaml` reads `RDSEndpoint` as a CloudFormation parameter and injects it directly into the secret, so no manual editing of the secret is required.
-
-```json
-"RDSEndpoint": "my-db.myserver.us-east-1.rds.amazonaws.com"
-```
-
-> Replace the placeholder above with the actual endpoint shown at the end of Step 6.
-
-⚠️ **Note:** Step 6 will display the RDS endpoint. Save it in `parameters-${CANOPY_ENV}.json` as shown above — do **not** edit Secrets Manager directly.
 ---
 
 ### Step 7b: Configure pg_cron Scheduler *(Optional)*
@@ -582,6 +589,7 @@ Automates the weekly `hub_content_metrics` snapshot by scheduling `sp_generate_h
 
 ### Step 8: Deploy Route53 Stack (Optional)
 **Time:** 5 minutes
+💡 **Skip this step** if you don't have Route53 hosted zones configured.
 
 Creates DNS records and routing configurations.
 
@@ -596,8 +604,6 @@ aws cloudformation deploy \
   --profile ${AWS_PROFILE} \
   --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 ```
-
-💡 **Skip this step** if you don't have Route53 hosted zones configured.
 
 ---
 
@@ -704,7 +710,20 @@ Edit `parameters-${CANOPY_ENV}.json` and update:
 
 #### Step 12b. Deploy OpenSearch Stack
 
-⚠️ **First-time AWS account:** Uncomment lines 45-49 in [OpenSearch.yaml](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/OpenSearch.yaml) to create the service-linked role.
+⚠️ **First time deploying OpenSearch in this AWS account?** This warning is about your **AWS account** (identified by its account ID), not the IAM user you created in Step 1.
+
+AWS requires a service-linked role called **`AWSServiceRoleForAmazonOpenSearchService`** to exist at the account level before any OpenSearch domain can be created. This role is created once per account and is shared across all IAM users in that account. If no one has ever deployed an OpenSearch (or the older Amazon Elasticsearch Service) domain in this AWS account before, the role will not exist yet — and the CloudFormation stack will fail with an `Invalid request` error.
+
+**How to check:** Run the following command to see if the role already exists in your account:
+
+```bash
+aws iam get-role --role-name AWSServiceRoleForAmazonOpenSearchService --profile ${AWS_PROFILE}
+```
+
+- **If the command returns role details** → the role already exists. Leave lines 45-49 in `OpenSearch.yaml` commented out and proceed.
+- **If the command returns a `NoSuchEntity` error** → the role does not exist yet. Uncomment lines 45-49 in [OpenSearch.yaml](https://github.com/canopy-datahub/datahub-cloud-replication/blob/feature/aws/modules/OpenSearch.yaml) (under `datahub-cloud-replication/modules`) before running the deploy command below. CloudFormation will create the role as part of the stack.
+
+> **Note:** Never uncomment those lines if the role already exists — attempting to create it again will cause the stack to fail.
 
 ```bash
 aws cloudformation deploy \
@@ -779,7 +798,7 @@ aws secretsmanager describe-secret \
 ---
 
 ### Step 14: OpenSearch Reindex Lambda 
-📘 For detailed OpenSearch reindex lambda deployment documentation, see: [README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md](https://github.com/bmir-datahub/datahub-development/blob/feature/aws/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
+📘 For detailed OpenSearch reindex lambda deployment documentation, see: [README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
 
 #### Step 14a: Create Lambda Layer
 **Time:** 5 minutes
@@ -1166,7 +1185,7 @@ By default, the SES stack creates three email identities:
 
 **To use your own email addresses:**
 
-Edit [`modules/SES.yaml`](https://github.com/bmir-datahub/datahub-cloud-replication/blob/feature/aws/modules/SES.yaml) and replace the default email identities with your organization's emails.
+Edit [`modules/SES.yaml`](https://github.com/canopy-datahub/datahub-cloud-replication/blob/feature/aws/modules/SES.yaml) and replace the default email identities with your organization's emails.
 
 💡 **Tip:** Using a domain identity (e.g., `yourdomain.com`) allows you to send emails from any address at that domain without verifying each individual email.
 
@@ -1683,8 +1702,8 @@ aws opensearch describe-domain --domain-name ${CANOPY_PROJECT_NAME}-opensearch-$
 2. **Review CloudFormation Events** - Shows why stacks failed
 3. **AWS Console** - Visual inspection of resources
 4. **Documentation** - Check service-specific READMEs:
-   - [RDS Deployment](https://github.com/bmir-datahub/datahub-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
-   - [Lambda Deployment](https://github.com/bmir-datahub/datahub-development/blob/feature/aws/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
+   - [RDS Deployment](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
+   - [Lambda Deployment](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
 
 ---
 

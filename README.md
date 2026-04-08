@@ -1,13 +1,13 @@
-# DataHub Documentation
+# Canopy Documentation
 
-This repository contains comprehensive documentation for the DataHub platform.
+This repository contains comprehensive documentation for the Canopy platform.
 
 
 ## 📚 Contents
 
 ### Deployment & Operations
 
-- **[Deployment Guide](./DEPLOYMENT_GUIDE.md)** - Complete step-by-step guide for deploying DataHub to AWS
+- **[Deployment Guide](./DEPLOYMENT_GUIDE.md)** - Complete step-by-step guide for deploying Canopy to AWS
   - Prerequisites and setup
   - AWS infrastructure deployment
   - Database schema setup
@@ -16,4 +16,3 @@ This repository contains comprehensive documentation for the DataHub platform.
   - Troubleshooting
 
 **Last Updated:** January 2026
-
