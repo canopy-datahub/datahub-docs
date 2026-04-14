@@ -440,7 +440,7 @@ aws elbv2 describe-load-balancers \
   --output text \
   --no-cli-pager
 ```
-**Expected:** DNS name like `${CANOPY_PROJECT_NAME}-${ENV}-123456789.us-east-1.elb.amazonaws.com`
+**Expected:** DNS name like `${CANOPY_PROJECT_NAME}-${CANOPY_ENV}-123456789.us-east-1.elb.amazonaws.com`
 
 #### Post-deployment: Set ALB URL for SecretsManager and UI
 
@@ -749,7 +749,7 @@ aws opensearch describe-domain \
 
 #### Post-Deployment: Update Secrets Manager
 
-After OpenSearch stack deployment, save the OpenSearch endpoint as `OpenSearchEndpoint` in `parameters-${ENV}.json` before deploying the SecretsManager stack. `SecretsManager.yaml` reads `OpenSearchEndpoint` as a CloudFormation parameter and injects it directly into the secret as `SEARCH_HOST`, so no manual editing of the secret is required.
+After OpenSearch stack deployment, save the OpenSearch endpoint as `OpenSearchEndpoint` in `parameters-${CANOPY_ENV}.json` before deploying the SecretsManager stack. `SecretsManager.yaml` reads `OpenSearchEndpoint` as a CloudFormation parameter and injects it directly into the secret as `SEARCH_HOST`, so no manual editing of the secret is required.
 
 ```json
 "OpenSearchEndpoint": "vpc-my-domain-abc123.us-east-1.es.amazonaws.com"
@@ -757,7 +757,7 @@ After OpenSearch stack deployment, save the OpenSearch endpoint as `OpenSearchEn
 
 > Replace the placeholder above with the actual endpoint shown at the end of Step 12b.
 
-⚠️ **Note:** Step 12b will display the OpenSearch endpoint. Save it in `parameters-${ENV}.json` as shown above — do **not** edit Secrets Manager directly.
+⚠️ **Note:** Step 12b will display the OpenSearch endpoint. Save it in `parameters-${CANOPY_ENV}.json` as shown above — do **not** edit Secrets Manager directly.
 
 ---
 
@@ -1021,21 +1021,7 @@ aws ecs list-services \
 
 Deploys Keycloak as a dedicated ECS service for identity and access management.
 
-#### Step 17.1a: Build and Push Keycloak Image
-**Time:** 5 minutes
-
-Build the Keycloak Docker image and push it to ECR:
-
-```bash
-cd ${CANOPY_HOME}/datahub-deployment-scripts
-python deploy.py ${CANOPY_PROJECT_NAME} keycloak ${CANOPY_ENV} 26.5.4
-```
-
-> The `26.5.4` argument pins the Keycloak image to a specific version tag.
-
----
-
-#### Step 17.1b: Deploy Keycloak ECS Stack
+#### Step 17.1a: Deploy Keycloak ECS Stack
 **Time:** 5 minutes
 
 Deploy the Keycloak-specific ECS service via CloudFormation:
@@ -1053,46 +1039,21 @@ aws cloudformation deploy \
 
 ---
 
-#### Step 17.1c: Configure Keycloak Database SSL
+#### Step 17.1b: Build and Push Keycloak Image
 **Time:** 5 minutes
 
-Connect to the RDS instance and disable SSL enforcement on the Keycloak master realm. Replace `<DBMasterUsername>` and `<DBName>` with the values from your RDS configuration:
+Build the Keycloak Docker image and push it to ECR:
 
 ```bash
-psql -h $(aws rds describe-db-instances \
-  --query "DBInstances[?DBInstanceIdentifier==\`${CANOPY_PROJECT_NAME}-postgresql-${CANOPY_ENV}\`].Endpoint.Address" \
-  --output text --profile ${AWS_PROFILE}) \
-  -U <DBMasterUsername> \
-  -d <DBName>
+cd ${CANOPY_HOME}/datahub-deployment-scripts
+python deploy.py ${CANOPY_PROJECT_NAME} keycloak ${CANOPY_ENV} 26.5.4
 ```
 
-Once connected, run:
-
-```sql
-SELECT id, name, ssl_required FROM realm;
-
-UPDATE realm SET ssl_required='NONE' WHERE name = 'master';
-```
+> The `26.5.4` argument pins the Keycloak image to a specific version tag.
 
 ---
 
-#### Step 17.1d: Restart Keycloak Service
-**Time:** 5 minutes
-
-Force a new ECS deployment so Keycloak picks up the SSL configuration change:
-
-```bash
-aws ecs update-service \
-  --cluster ${CANOPY_PROJECT_NAME}-Services-${CANOPY_ENV} \
-  --service ${CANOPY_PROJECT_NAME}-Keycloak \
-  --force-new-deployment \
-  --profile $AWS_PROFILE \
-  --region $AWS_REGION
-```
-
----
-
-#### Step 17.1e: Initial Keycloak Configuration
+#### Step 17.1c: Initial Keycloak Configuration
 **Time:** 10 minutes
 
 > ⚠️ **Note:** These manual steps will be replaced later by an automatic realm import.
@@ -1306,7 +1267,7 @@ aws cloudformation deploy \
   --profile ${AWS_PROFILE} \
   --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
 
-# With Elastic IP — first set ElasticIPAllocationId in parameters-${ENV}.json:
+# With Elastic IP — first set ElasticIPAllocationId in parameters-${CANOPY_ENV}.json:
 #   "ElasticIPAllocationId": "eipalloc-xxxxxxxx"
 # Then deploy (same command as above):
 aws cloudformation deploy \
