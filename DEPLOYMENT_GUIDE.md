@@ -921,7 +921,7 @@ mvn clean package -DskipTests
 
 # Upload to S3
 aws s3 cp target/datahub-service-email-0.0.1-SNAPSHOT-aws.jar \
-  s3://${PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${ENV}/email-service/
+  s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}/email-service/
 ```
 ✅ **Verify:** Check S3 upload
 ```bash
