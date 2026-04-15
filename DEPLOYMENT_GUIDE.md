@@ -1058,7 +1058,7 @@ python deploy.py ${CANOPY_PROJECT_NAME} keycloak ${CANOPY_ENV} 26.5.4
 
 > ⚠️ **Note:** These manual steps will be replaced later by an automatic realm import.
 
-Log in to the Keycloak admin console (accessible via the ALB URL on the `/keycloak` path).
+Log in to the Keycloak admin console (accessible via the ALB URL on the `/admin/master/console/` path).
 
 ##### Create Realm
 
