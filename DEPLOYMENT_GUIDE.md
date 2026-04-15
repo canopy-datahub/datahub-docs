@@ -145,17 +145,25 @@ Use this checklist to track your progress. Each step links to detailed instructi
 ### Step 0: Clone Repositories
 **Time:** 5 minutes
 
-Clone all necessary repositories from the BMIR DataHub GitHub organization:
+Create a dedicated directory for all the repositories you will be working with.
 
 ```bash
 # Create workspace directory
-mkdir -p ~/dataHub
-cd ~/dataHub
+mkdir ~/CANOPY
+```
+
+Clone all necessary repositories from the BMIR DataHub GitHub organization:
+
+```bash
+cd ~/CANOPY
 
 # Clone all repositories
-git clone https://github.com/canopy-datahub/datahub-cloud-replication.git
-git clone https://github.com/canopy-datahub/datahub-deployment-scripts.git
-git clone https://github.com/canopy-datahub/datahub-development.git
+git clone https://github.com/canopy-datahub/canopy-cli.git
+git clone https://github.com/canopy-datahub/canopy-cloud-replication.git
+git clone https://github.com/canopy-datahub/canopy-deployment-scripts.git
+git clone https://github.com/canopy-datahub/canopy-development.git
+git clone https://github.com/canopy-datahub/canopy-docs.git
+
 git clone https://github.com/canopy-datahub/datahub-service-download.git
 git clone https://github.com/canopy-datahub/datahub-service-email.git
 git clone https://github.com/canopy-datahub/datahub-service-entity.git
@@ -163,13 +171,15 @@ git clone https://github.com/canopy-datahub/datahub-service-report.git
 git clone https://github.com/canopy-datahub/datahub-service-search.git
 git clone https://github.com/canopy-datahub/datahub-service-submission.git
 git clone https://github.com/canopy-datahub/datahub-service-user.git
+
+git clone https://github.com/canopy-datahub/datahub-project.git
 git clone https://github.com/canopy-datahub/datahub-ui-main.git
 
 # Verify all repositories are cloned
 ls -la
 ```
 
-✅ **Verify:** You should see 12 directories in `~/dataHub/`
+✅ **Verify:** You should see 14 directories in `~/CANOPY`
 
 ---
 
@@ -196,7 +206,7 @@ aws --version
 5. Download and save the credentials securely
 6. Replace `YOUR_ACCESS_KEY_ID` and `YOUR_SECRET_ACCESS_KEY` below
 
-⚠️ **Important:** In the following guide `datahub-rep` is the AWS profile name. Feel free to choose another name, but use it consistently throughout the guide. 
+⚠️ **Important:** In the following guide `canopy-profile` is the AWS profile name. Feel free to choose another name but use it consistently throughout the guide. 
 
 ```bash
 # Create AWS credentials file
@@ -204,14 +214,14 @@ mkdir -p ~/.aws
 
 # Add your credentials
 cat <<EOL >> ~/.aws/credentials
-[datahub-rep]
+[canopy-profile]
 aws_access_key_id=YOUR_ACCESS_KEY_ID
 aws_secret_access_key=YOUR_SECRET_ACCESS_KEY
 EOL
 
 # Set default region
 cat <<EOL >> ~/.aws/config
-[profile datahub-rep]
+[profile canopy-profile]
 region=us-east-1
 output=json
 EOL
@@ -223,13 +233,13 @@ unset AWS_SECRET_ACCESS_KEY
 unset AWS_SESSION_TOKEN
 
 # Now set the profile and region
-export AWS_PROFILE=datahub-rep
+export AWS_PROFILE=canopy-profile
 export AWS_REGION=us-east-1
 ```
 
 ✅ **Verify:** Test AWS connectivity
 ```bash
-aws sts get-caller-identity
+aws sts get-caller-identity --no-cli-pager
 ```
 
 **Expected output:** Should show your AWS account ID, user ARN, and user ID.
@@ -244,7 +254,7 @@ If you followed Step 1b and attached **AdministratorAccess** during user creatio
 ```bash
 # Change to your own user name below
 aws iam attach-user-policy \
-  --user-name datahub-dev \
+  --user-name canopy-dev \
   --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
 ```
 ---
