@@ -142,40 +142,60 @@ Use this checklist to track your progress. Each step links to detailed instructi
 
 ## Pre-Deployment Setup
 
-### Step 0: Clone Repositories
-**Time:** 5 minutes
+### Step -2: Create Canopy Home
+**Time:** 1 minute
 
-Create a dedicated directory for all the repositories you will be working with.
+To work with the Canopy DataHub infrastructure, we strongly recommend that you create a dedicated directory for all the repositories you will be working with.
+This guide will assume that you are following this best practice.
 
 ```bash
 # Create workspace directory
 mkdir ~/CANOPY
 ```
 
-Clone all necessary repositories from the BMIR DataHub GitHub organization:
+### Step -1: Set Up Canopy CLI
+**Time:** 5 minutes
+
+Canopy CLI is a command-line tool that you can use to interact with the Canopy DataHub infrastructure.
+It hides the complexity of several commands during this setup and allows you to focus on the actual deployment.
+We will use it extensively throughout this guide.
+
+You can follow the guide directly from the [Canopy CLI repository](https://github.com/canopy-datahub/canopy-cli), or you can install it using the following commands:
 
 ```bash
-cd ~/CANOPY
+export CANOPY_HOME=~/CANOPY
 
-# Clone all repositories
-git clone https://github.com/canopy-datahub/canopy-cli.git
-git clone https://github.com/canopy-datahub/canopy-cloud-replication.git
-git clone https://github.com/canopy-datahub/canopy-deployment-scripts.git
-git clone https://github.com/canopy-datahub/canopy-development.git
-git clone https://github.com/canopy-datahub/canopy-docs.git
+cd ${CANOPY_HOME}
+git clone https://github.com/canopy-datahub/canopy-cli
 
-git clone https://github.com/canopy-datahub/datahub-service-download.git
-git clone https://github.com/canopy-datahub/datahub-service-email.git
-git clone https://github.com/canopy-datahub/datahub-service-entity.git
-git clone https://github.com/canopy-datahub/datahub-service-report.git
-git clone https://github.com/canopy-datahub/datahub-service-search.git
-git clone https://github.com/canopy-datahub/datahub-service-submission.git
-git clone https://github.com/canopy-datahub/datahub-service-user.git
+cd canopy-cli
+# checkout the develop branch for the latest features
+git checkout develop
 
-git clone https://github.com/canopy-datahub/datahub-project.git
-git clone https://github.com/canopy-datahub/datahub-ui-main.git
+# create venv
+python -m venv ./.venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# create an alias
+alias canopycli='source $CANOPY_HOME/canopy-cli/cli.sh'
+
+# test it
+canopycli
+# or
+python cli.py
+```
+
+### Step 0: Clone Repositories
+**Time:** 5 minutes
+
+Clone all necessary repositories from the Canopy DataHub GitHub organization:
+
+```bash
+canopycli git clone all
 
 # Verify all repositories are cloned
+cd ${CANOPY_HOME}
 ls -la
 ```
 
@@ -202,7 +222,7 @@ aws --version
 1. Log into AWS Console
 2. If you don't have an IAM user yet, go to **IAM → Users → Create user**, enter a username (e.g. `canopy-dev`), and click **Next**. On the permissions screen, select **Attach policies directly**, search for **AdministratorAccess**, select it, and click **Next**. Review the summary, then click **Create user**.
 3. Go to IAM → Users → Select your user
-4. Security Credentials tab → Create Access Key
+4. Security Credentials tab → Create Access Key. On the **Access key best practices & alternatives** page choose **Command Line Interface (CLI)**.
 5. Download and save the credentials securely
 6. Replace `YOUR_ACCESS_KEY_ID` and `YOUR_SECRET_ACCESS_KEY` below
 
@@ -264,79 +284,36 @@ aws iam attach-user-policy \
 
 ⚠️ **SHORTCUT:**
 This guide will introduce several environment variables that will be used throughout the deployment.
-We strongly suggest that you set all of these up at this stage by creating a file called `set-canopy-env.sh` or similar, with the following content:
+You can bootstrap them by running the following command:
+
+⚠️ **IMPORTANT:**
+Change ```dev``` to ```test``` or ```prod``` to deploy to a different environment.
+During this guide, ```${CANOPY_ENV}``` is just a string value, but it is recommended to use lowercase only. It is used to suffix the AWS resource names.
 
 ```bash
-#!/bin/bash
-
-unset AWS_ACCESS_KEY_ID
-unset AWS_SECRET_ACCESS_KEY
-unset AWS_SESSION_TOKEN
-
-export AWS_PROFILE=datahub-rep
-export AWS_REGION=us-east-1
-
 export CANOPY_ENV=dev
-export CANOPY_HOME=~/DATAHUB
-export CANOPY_AWS_PARAMETER_FILE=${CANOPY_HOME}/datahub-cloud-replication/parameters-${CANOPY_ENV}.json
-export CANOPY_PROJECT_NAME=$(cat ${CANOPY_AWS_PARAMETER_FILE} | grep -o '"ProjectName": "[^"]*"' | cut -d'"' -f4)
-export CANOPY_UNIQUE_ID=$(cat ${CANOPY_AWS_PARAMETER_FILE} | grep -o '"DataHubUniqueId": "[^"]*"' | cut -d'"' -f4)
-
-echo ""
-echo "Environment     : $CANOPY_ENV"
-echo "Project Home    : $CANOPY_HOME"
-echo "Project Name    : $CANOPY_PROJECT_NAME"
-echo "Canopy Unique Id: $CANOPY_UNIQUE_ID"
-echo "AWS Profile     : $AWS_PROFILE"
-echo "AWS Region      : $AWS_REGION"
-echo ""
+canopycli init
 ```
 
-⚠️ **Important:** Execute this file to set all the environment variables, any time when you make a significant change to the `params-${CANOPY_ENV}.json` file. 
+✅ **Verify:** As a result, these 3 files will show up in your Canopy home directory:
+```bash
+aws-parameters-${CANOPY_ENV}-${USERNAME}.json                                                                                   │
+canopy-profile-native-develop.sh                                                                               │
+set-canopy-env.sh
+```
+
+Feel free to rename ```aws-parameters-${CANOPY_ENV}-${USERNAME}.json``` based on your needs.
+BUT make sure to update ```set-canopy-env.sh``` as well, because it references the json file.
+
+⚠️ **IMPORTANT:** Reload ```set-canopy-env.sh``` to set all the environment variables, any time when you make a significant change to the `aws-parameters-${CANOPY_ENV}--${USERNAME}.json` file. 
 Use: 
 ```bash
-source set-canopy-env.sh
+source ${CANOPY_HOME}/set-canopy-env.sh
 ```
 ---
 
-⚠️ **TO UPDATE:**
-The current guide still sets the above environment variables manually, one by one during the first 4 steps.
-These unnecessary blocks will be soon removed from the guide.
----
+💡 **Tip:** Add these to your `~/.bashrc` or `~/.zshrc` to persist across sessions.
 
-Set environment variables that will be used throughout the deployment:
-
-```bash
-# Set environment (dev, test, or prod)
-export CANOPY_ENV=dev
-
-# Set home folder where all the repos were checked out
-export CANOPY_HOME=~/CANOPY
-
-# Set parameter files path
-export CANOPY_AWS_PARAMETER_FILE=${CANOPY_HOME}/datahub-cloud-replication/parameters-${CANOPY_ENV}.json
-
-# Open parameters file for your environment
-nano ${CANOPY_AWS_PARAMETER_FILE} 
-
-# edit your `ProjectName` parameter
-# important: use lowercase only, as this value will also be used in s3 bucket names, which only allow lowercase
-
-# save it in the environment variable
-export CANOPY_PROJECT_NAME=$(cat ${CANOPY_AWS_PARAMETER_FILE} | grep -o '"ProjectName": "[^"]*"' | cut -d'"' -f4)
-
-# Set AWS profile and region
-export AWS_PROFILE=datahub-rep
-export AWS_REGION=us-east-1
-
-# Verify settings
-echo "Environment:  $CANOPY_ENV"
-echo "Project Home: $CANOPY_HOME"
-echo "Project Name: $CANOPY_PROJECT_NAME"
-echo "AWS Profile:  $AWS_PROFILE"
-echo "AWS Region:   $AWS_REGION"
-```
-##### 💡 **Tip:** Add these to your `~/.bashrc` or `~/.zshrc` to persist across sessions.
 ---
 
 ## Core AWS Infrastructure
