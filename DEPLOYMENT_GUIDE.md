@@ -610,7 +610,7 @@ canopycli aws rds endpoint
 Save the RDS endpoint as `RDSEndpoint` in `aws-parameters-${CANOPY_ENV}-${USERNAME}.json` before deploying the SecretsManager stack. `SecretsManager.yaml` reads `RDSEndpoint` as a CloudFormation parameter and injects it directly into the secret, so no manual editing of the secret is required.
 
 ```json
-"RDSEndpoint": "my-db.myserver.us-east-1.rds.amazonaws.com"
+"RDSEndpoint": "REPLACEME:....amazonaws.com"
 ```
 
 > Replace the placeholder above with the actual endpoint shown at the end of Step 11b.
@@ -627,30 +627,18 @@ This step creates the database schema, tables, views, and initial data in your R
 
 #### 📘 Detailed Documentation
 
-**See:** [README_RDS_DEPLOYMENT.md](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
+**See:** [README_RDS_DEPLOYMENT.md](https://github.com/canopy-datahub/canopy-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
 
 
 #### Quick Setup (Automated)
 
-Use the automated Python deployment script:
+🖥️ **Execute**:
 
 ```bash
-# Navigate to the python script
-cd ${CANOPY_HOME}/datahub-development/db/postgres/db-create-scripts
-
-python deploy_to_rds.py --project-name ${CANOPY_PROJECT_NAME} --env ${CANOPY_ENV} --region ${AWS_REGION} --profile ${AWS_PROFILE}
-
-# Examples for different environments:
-# python deploy_to_rds.py --project-name canopy --env dev --region us-east-1 --profile datahub-rep
-# python deploy_to_rds.py --project-name canopy --env test --region us-east-1 --profile datahub-rep
-# python deploy_to_rds.py --project-name canopy --env prod --region us-east-1 --profile datahub-rep
+canopycli aws rds deploy-schema
 ```
 
-**Script Parameters:**
-- `--project-name`: Project name (e.g., `canopy`) - **REQUIRED**
-- `--env`: Environment (`dev`, `test`, or `prod`) - default: `dev`
-- `--region`: AWS region - default: `us-east-1`
-- `--profile`: AWS profile name - default: `datahub-rep`
+This wraps `canopy-development/db/postgres/db-create-scripts/deploy_to_rds.py` and passes `--project-name`, `--env`, `--region`, and `--profile` from your sourced `set-canopy-env.sh` (i.e. `${CANOPY_PROJECT_NAME}`, `${CANOPY_ENV}`, `${AWS_REGION}`, `${AWS_PROFILE}`). Pass `--dry-run` to print the underlying command without executing it.
 
 **What the script does:**
 1. ✅ Verifies AWS credentials and RDS connectivity
@@ -830,7 +818,7 @@ canopycli aws secrets describe
 ---
 
 ### Step 19: OpenSearch Reindex Lambda 
-📘 For detailed OpenSearch reindex lambda deployment documentation, see: [README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
+📘 For detailed OpenSearch reindex lambda deployment documentation, see: [README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md](https://github.com/canopy-datahub/canopy-development/blob/feature/aws/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
 
 #### Step 19a: Create Lambda Layer
 **Time:** 5 minutes
@@ -877,7 +865,7 @@ open -a Docker
 docker info
 
 # Navigate to python script folder 
-cd ${CANOPY_HOME}/datahub-development/opensearch/opensearch_reindex
+cd ${CANOPY_HOME}/canopy-development/opensearch/opensearch_reindex
 
 # Create Lambda layer with ARM64-compatible dependencies
 python create_layer.py dependency-layer ${AWS_REGION} ${AWS_PROFILE}
@@ -1628,8 +1616,8 @@ aws opensearch describe-domain --domain-name ${CANOPY_PROJECT_NAME}-opensearch-$
 2. **Review CloudFormation Events** - Shows why stacks failed
 3. **AWS Console** - Visual inspection of resources
 4. **Documentation** - Check service-specific READMEs:
-   - [RDS Deployment](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
-   - [Lambda Deployment](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
+   - [RDS Deployment](https://github.com/canopy-datahub/canopy-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
+   - [Lambda Deployment](https://github.com/canopy-datahub/canopy-development/blob/feature/aws/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
 
 ---
 
