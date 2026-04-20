@@ -100,7 +100,7 @@ Use this checklist to track your progress. Each step links to detailed instructi
 - [ ] **Step 6:** [Deploy the Bootstrap Stack](#step-6-deploy-the-bootstrap-stack) (2 min)
 - [ ] **Step 7:** [Deploy Networking Stack](#step-7-deploy-networking-stack) (5 min)
 - [ ] **Step 8:** [Deploy S3 Stack](#step-8-deploy-s3-stack) (5 min)
-  - [ ] **Step 8a:** [Configure DataHubUniqueId](#step-8a-configure-datahubuniqueid-for-s3-buckets)
+  - [ ] **Step 8a:** [Configure DeploymentId](#step-8a-configure-datahubuniqueid-for-s3-buckets)
   - [ ] **Step 8b:** [Deploy into AWS](#step-8b-deploy-into-aws)
 - [ ] **Step 9:** [Deploy LoadBalancer Stack](#step-9-deploy-loadbalancer-stack) (5 min)
 - [ ] **Step 10:** [Deploy RDS Stack](#step-10-deploy-rds-stack) (15 min)
@@ -413,34 +413,35 @@ canopycli aws cloudformation status Networking
 
 Creates S3 buckets for data files, metadata files, data dictionary files and lambda functions code.
 
-#### step 4a. Configure DataHubUniqueId for S3 Buckets 
+#### step 4a. Configure DeploymentId for S3 Buckets 
 
-S3 bucket names must be globally unique. Update the `DataHubUniqueId` parameter, and reload the env vars:
+S3 bucket names must be globally unique. Update the `DeploymentId` parameter, and **reload the env vars**:
 
 🖥️ **Execute**:
 ```bash
 # Open parameters file for your environment
 nano ${CANOPY_AWS_PARAMETER_FILE} 
 
-# edit your `DataHubUniqueId` parameter
+# edit your `DeploymentId` parameter
 # important: use lowercase only, as this value will also be used in s3 bucket names, which only allow lowercase
 
 source ${CANOPY_HOME}/set-canopy-env.sh
 ```
 
-**Update the `DataHubUniqueId` value:**
+**Update the `DeploymentId` value:**
 - Use lowercase letters, numbers, and hyphens only
 - Keep it short (5-20 characters)
 - Make it unique (e.g., your institution name + random string)
-- Example: `stanford-abc123`, `myorg-dev`, `acme-prod`
+- **Do not repeat the `ProjectName` or the `Environment` values!** Those will be used anyways everywhere where `DeploymentId` is used.
+- Examples: `stanford-abc123`, `0001`, `acme-ABC`
 
 **Bucket names that will be created:**
-- `${PROJECT_NAME}-upload-portal-${CANOPY_UNIQUE_ID}-$CANOPY_ENV}`
-- `${PROJECT_NAME}-sftp-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}`
-- `${PROJECT_NAME}-review-{$CANOPY_UNIQUE_ID}-{$CANOPY_ENV}`
-- `${PROJECT_NAME}-default-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}`
-- `${PROJECT_NAME}-lambda-artifacts-{$CANOPY_UNIQUE_ID}-${CANOPY_ENV}`
-- `${PROJECT_NAME}-resources-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}`
+- `${PROJECT_NAME}-upload-portal-${CANOPY_DEPLOYMENT_ID}-$CANOPY_ENV}`
+- `${PROJECT_NAME}-sftp-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}`
+- `${PROJECT_NAME}-review-{$CANOPY_DEPLOYMENT_ID}-{$CANOPY_ENV}`
+- `${PROJECT_NAME}-default-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}`
+- `${PROJECT_NAME}-lambda-artifacts-{$CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}`
+- `${PROJECT_NAME}-resources-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}`
 
 #### Step 8b. Deploy into AWS
 🖥️ **Execute**:
@@ -448,7 +449,7 @@ source ${CANOPY_HOME}/set-canopy-env.sh
 canopycli aws cloudformation deploy S3
 ```
 
-⚠️ **Troubleshooting:** If deployment fails with `BucketAlreadyExists`, go back to Step 8a and choose a different `DataHubUniqueId`.
+⚠️ **Troubleshooting:** If deployment fails with `BucketAlreadyExists`, go back to Step 8a and choose a different `DeploymentId`.
 
 ✅ **Verify:** 
 ```bash
@@ -844,15 +845,15 @@ Package and upload Lambda function code to S3.
 
 **Script Usage:**
 ```bash
-python deploy_lambda.py ${CANOPY_PROJECT_NAME} ${CANOPY_ENV} ${CANOPY_UNIQUE_ID}
+python deploy_lambda.py ${CANOPY_PROJECT_NAME} ${CANOPY_ENV} ${CANOPY_DEPLOYMENT_ID}
 ```
 
 **Parameters:**
 
 - **project-name**: Project name (e.g., `datahub`, `canopy`) - **REQUIRED**
 - **env**: `dev`, `test`, or `prod` - **REQUIRED**
-- **DataHubUniqueId**: Unique identifier for S3 bucket (e.g., `stanford`) - **REQUIRED**
-  - S3 bucket: `${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}`
+- **DeploymentId**: Unique identifier for S3 bucket (e.g., `stanford`) - **REQUIRED**
+  - S3 bucket: `${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}`
 
 **What this does:**
 1. Validates required files exist
@@ -862,13 +863,13 @@ python deploy_lambda.py ${CANOPY_PROJECT_NAME} ${CANOPY_ENV} ${CANOPY_UNIQUE_ID}
    - `variable_index_mapping.json`
    - `autocomplete_index_mapping.json`
 3. Creates ZIP (should be <100KB)
-4. Uploads to S3: `s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}/opensearch-refresh/`
+4. Uploads to S3: `s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/opensearch-refresh/`
 
 ⚠️ **Note:** Dependencies are NOT included (they're in the layer from Step 18a)
 
 ✅ **Verify:** Check S3 upload
 ```bash
-aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}/opensearch-refresh/
+aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/opensearch-refresh/
 ```
 **Expected:** Should show `opensearch-refresh-lambda.zip`
 
@@ -882,11 +883,11 @@ mvn clean package -DskipTests
 
 # Upload to S3
 aws s3 cp target/datahub-service-email-0.0.1-SNAPSHOT-aws.jar \
-  s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}/email-service/
+  s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/email-service/
 ```
 ✅ **Verify:** Check S3 upload
 ```bash
-aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}/email-service/
+aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/email-service/
 ```
 **Expected:** Should show `datahub-service-email-0.0.1-SNAPSHOT-aws.jar`
 ---
@@ -1212,7 +1213,7 @@ aws secretsmanager create-secret \
   --secret-string "{
     \"Password\": \"${CANOPY_SFTP_PASSWORD}\",
     \"Role\": \"${ROLE_ARN}\",
-    \"HomeDirectory\": \"/${CANOPY_PROJECT_NAME}-sftp-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}/${CANOPY_ENV}/${CANOPY_SFTP_USERNAME}\",
+    \"HomeDirectory\": \"/${CANOPY_PROJECT_NAME}-sftp-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/${CANOPY_ENV}/${CANOPY_SFTP_USERNAME}\",
     \"Policy\": \"{\\\"Version\\\":\\\"2012-10-17\\\",\\\"Statement\\\":[{\\\"Sid\\\":\\\"AllowListingOfUserFolder\\\",\\\"Action\\\":[\\\"s3:ListBucket\\\"],\\\"Effect\\\":\\\"Allow\\\",\\\"Resource\\\":[\\\"arn:aws:s3:::\${transfer:HomeBucket}\\\"],\\\"Condition\\\":{\\\"StringLike\\\":{\\\"s3:prefix\\\":[\\\"\${transfer:HomeFolder}/*\\\",\\\"\${transfer:HomeFolder}\\\"]}}},{\\\"Sid\\\":\\\"HomeDirObjectAccess\\\",\\\"Effect\\\":\\\"Allow\\\",\\\"Action\\\":[\\\"s3:PutObject\\\",\\\"s3:GetObject\\\",\\\"s3:DeleteObject\\\",\\\"s3:DeleteObjectVersion\\\",\\\"s3:GetObjectVersion\\\",\\\"s3:GetObjectACL\\\",\\\"s3:PutObjectACL\\\"],\\\"Resource\\\":\\\"arn:aws:s3:::\${transfer:HomeDirectory}*\\\"}]}\"
   }" \
   --profile ${AWS_PROFILE} \
@@ -1485,7 +1486,7 @@ aws cloudformation describe-stack-events \
 
 **Error:** `BucketAlreadyExists` or `BucketAlreadyOwnedByYou`
 
-**Solution:** Go back to Step 8a and choose a different `DataHubUniqueId`.
+**Solution:** Go back to Step 8a and choose a different `DeploymentId`.
 
 #### ECS Service Fails to Start
 
@@ -1576,7 +1577,7 @@ S3 buckets with content cannot be deleted by CloudFormation:
 
 ```bash
 # Match all buckets for this project/uniqueId/env
-pattern="^${CANOPY_PROJECT_NAME}-.*-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}$"
+pattern="^${CANOPY_PROJECT_NAME}-.*-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}$"
 
 # List matching buckets
 aws s3 ls | awk '{print $3}' | grep -E "$pattern"
@@ -1598,7 +1599,7 @@ aws rds describe-db-instances --query "DBInstances[?contains(DBInstanceIdentifie
 
 # Disable deletion protection (replace INSTANCE_ID with your RDS instance identifier)
 aws rds modify-db-instance \
-  --db-instance-identifier ${CANOPY_PROJECT_NAME}-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}-postgres \
+  --db-instance-identifier ${CANOPY_PROJECT_NAME}-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}-postgres \
   --no-deletion-protection \
   --apply-immediately
 ```
