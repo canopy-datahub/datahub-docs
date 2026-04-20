@@ -493,15 +493,19 @@ For these reasons, the ALB **must** terminate HTTPS using an ACM-issued certific
 
 ✅ **Verify:** the certificate status in the ACM console must show **Issued** before continuing. A status of *Pending validation* means DNS has not yet propagated — wait and refresh.
 
-#### Step 9c: Configure the CertificateId Parameter
+#### Step 9c: Configure the CertificateId and PublicHostname Parameters
 
-Add the certificate's UUID (the last path segment of the ARN, not the full ARN) to `aws-parameters-${CANOPY_ENV}-{USERNAME}.json`:
+Add the following two values to `aws-parameters-${CANOPY_ENV}-{USERNAME}.json`:
 
 ```json
-"CertificateId": "<CERT-UUID>"
+"CertificateId": "<CERT-UUID>",
+"PublicHostname": "https://<YOUR-SUBDOMAIN-NAME>.<YOUR-DOMAIN-NAME>"
 ```
 
-`LoadBalancer.yaml` reads this parameter and attaches the ACM certificate to the HTTPS listener that Step 10 creates. Without it, the LoadBalancer stack deploy will fail.
+- **`CertificateId`** — the UUID segment of the certificate ARN (not the full ARN). `LoadBalancer.yaml` reads this and attaches the ACM certificate to the HTTPS listener that Step 10 creates. Without it, the LoadBalancer stack deploy will fail.
+- **`PublicHostname`** — the full public HTTPS URL the users will access Canopy at (same domain the certificate was issued for, with `https://` scheme). It is consumed by two stacks later in the deployment:
+  - `ECS-Keycloak.yaml` passes it as `KC_HOSTNAME`, so Keycloak advertises this URL in its OIDC discovery document and uses it for redirects.
+  - `SecretsManager.yaml` uses it to populate `HostURL`, `DATAHUB_KEYCLOAK_ISSUER_URI`, and `DATAHUB_KEYCLOAK_JWK_SET_URI` in the application secret — these must match Keycloak's advertised hostname exactly, otherwise token validation and JWKS fetches will fail.
 
 > **Note — pointing the domain at the ALB happens *after* Step 10.** The ALB DNS name does not exist until the LoadBalancer stack has been deployed, so the `<YOUR-SUBDOMAIN-NAME>` → `<ALB-DOMAIN-NAME>` CNAME is added as a post-deployment task at the end of Step 10.
 
@@ -523,17 +527,7 @@ canopycli aws elb dns
 ```
 **Expected:** DNS name like `${CANOPY_PROJECT_NAME}-${CANOPY_ENV}-123456789.us-east-1.elb.amazonaws.com`
 
-#### Post-deployment: Set ALB URL for SecretsManager and UI
-
-The ALB DNS from Step 10 must be used in two places later, so the application and backend use the correct URL:
-
-1. **SecretsManager (Step 18)** — Save the ALB DNS name in `aws-parameters-${CANOPY_ENV}-{USERNAME}.json` now, before deploying the SecretsManager stack. `SecretsManager.yaml` reads `HostURL` as a CloudFormation parameter and injects it directly into the secret, so no manual editing of the secret is required.
-
-   ```json
-   "LoadBalancerDomainName": "http://${CANOPY_PROJECT_NAME}-${CANOPY_ENV}-123456789.us-east-1.elb.amazonaws.com"
-   ```
-
-   > Replace the placeholder above with the actual DNS name returned by the verify command above.
+> You don't need to save this ALB DNS name anywhere — downstream stacks (`SecretsManager.yaml`, `ECS-Keycloak.yaml`) consume `PublicHostname` (configured in Step 9c), not the raw ALB DNS. The ALB DNS is only used for the DNS CNAME below.
 
 #### Post-deployment: Point the Domain at the ALB
 
@@ -548,15 +542,20 @@ Now that the ALB exists, finish the HTTPS wiring started in Step 9 by pointing y
 
 This makes `<YOUR-SUBDOMAIN-NAME>.<YOUR-DOMAIN-NAME>` resolve to the load balancer. Because the ACM certificate from Step 9 covers exactly this domain, HTTPS will work as soon as DNS propagates.
 
-✅ **Verify** after DNS propagates (usually a few minutes):
+✅ **Verify** after DNS propagates (usually a few minutes). At this point the ALB exists but no backend services are registered yet (the UI and backend don't deploy until Step 27), so a working HTTPS setup is signalled by the TLS handshake succeeding — a `503 Service Unavailable` from the ALB is expected and correct:
 
 ```bash
-# Should return an HTTPS response from the UI service
+# TLS handshake must succeed (cert valid for this domain). Expected status: HTTP/2 503 from awselb/2.0
 curl -I https://<YOUR-SUBDOMAIN-NAME>.<YOUR-DOMAIN-NAME>
 
 # Should 301 redirect to HTTPS
 curl -I http://<YOUR-SUBDOMAIN-NAME>.<YOUR-DOMAIN-NAME>
+
+# Explicit cert-chain check (no 503 noise — just verifies the cert is trusted and matches the domain)
+curl -Iv https://<YOUR-SUBDOMAIN-NAME>.<YOUR-DOMAIN-NAME> 2>&1 | grep -E "subject:|issuer:|SSL certificate verify"
 ```
+
+If you see a TLS error (e.g. `SSL certificate problem: unable to get local issuer certificate` or `certificate verify failed`), the ACM certificate is not attached correctly — revisit Step 9c (`CertificateId` parameter) and re-deploy the LoadBalancer stack. A real end-to-end HTTPS check against the UI service happens in Step 28.
 
 ---
 
@@ -574,10 +573,10 @@ Before deploying, get your public IP and save it as `MyIP` in `parameters-${CANO
 curl -4 ifconfig.me
 ```
 
-Then set the value in `parameters-${CANOPY_ENV}.json`:
+Then set the value in `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`:
 
 ```json
-"MyIP": "203.0.113.5/32"
+"MyIP": "REPLACEME/32"
 ```
 
 > Replace the IP above with the one returned by the `curl` command. The `/32` suffix is required.
@@ -589,7 +588,7 @@ The parameter file ships with a placeholder password. **Set it before deploying*
 In `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`, replace the placeholder:
 
 ```json
-"DbMasterPassword": "YourSecurePassword123!"
+"DbMasterPassword": "REPLACEME"
 ```
 
 #### Step 11c. Deploy RDS Stack
@@ -811,7 +810,7 @@ Creates secrets for database credentials, API keys, and OpenSearch configuration
 
 - **host** — RDS endpoint (from Step 11)
 - **SEARCH_HOST** — OpenSearch endpoint (from Step 17)
-- **HostURL** — Load Balancer URL (from Step 10)
+- **HostURL**, **DATAHUB_KEYCLOAK_ISSUER_URI**, **DATAHUB_KEYCLOAK_JWK_SET_URI** — all built from `PublicHostname` (configured in Step 9c). This must be the public HTTPS URL, not the raw ALB DNS, so that the values match the `iss` claim and JWKS endpoint Keycloak will advertise.
 
 Also update these email values for your environment before deployment:
 
@@ -1372,8 +1371,8 @@ cp .env.example .env.local
 Edit `.env.local`:
 
 ```bash
-# Required — your load balancer URL from Step 10
-NEXT_PUBLIC_DEV_URL=https://<your-alb>.us-east-1.elb.amazonaws.com
+# Required — the PublicHostname value from Step 9c (your public HTTPS URL, not the raw ALB DNS)
+NEXT_PUBLIC_DEV_URL=https://<YOUR-SUBDOMAIN-NAME>.<YOUR-DOMAIN-NAME>
 
 # Optional — Google Analytics Measurement ID (leave empty to disable)
 # See GOOGLE_ANALYTICS_SETUP.md for how to obtain this
