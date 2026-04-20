@@ -518,7 +518,7 @@ The parameter file ships with a placeholder password. **Set it before deploying*
 In `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`, replace the placeholder:
 
 ```json
-"CanopyParamDbMasterPassword": "YourSecurePassword123!"
+"DbMasterPassword": "YourSecurePassword123!"
 ```
 
 #### Step 10c. Deploy RDS Stack
