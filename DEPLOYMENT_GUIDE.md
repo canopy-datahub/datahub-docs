@@ -581,15 +581,25 @@ Then set the value in `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`:
 
 > Replace the IP above with the one returned by the `curl` command. The `/32` suffix is required.
 
-#### Step 11b. Set RDS Master Password
+#### Step 11b. Set RDS Master Password and Keycloak DB Credentials
 
-The parameter file ships with a placeholder password. **Set it before deploying** — CloudFormation passes it to `RDS.yaml` via `--parameter-overrides` and uses it as the RDS master password at creation time.
+The parameter file ships with placeholder passwords. **Set them before deploying** — CloudFormation passes them to `RDS.yaml` / `SecretsManager.yaml` via `--parameter-overrides`, and `deploy_to_rds.py` in Step 12a reads them to create the corresponding roles.
 
-In `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`, replace the placeholder:
+In `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`, replace the placeholders:
 
 ```json
-"DbMasterPassword": "REPLACEME"
+"DbMasterPassword": "REPLACEME",
+"CanopyAppDbName": "canopy_${CANOPY_ENV}",
+"KeycloakDbName": "canopy_keycloak_${CANOPY_ENV}",
+"KeycloakDbUsername": "keycloak_user",
+"KeycloakDbPassword": "REPLACEME_kc_db_password"
 ```
+
+- **`DbMasterPassword`** — RDS master user password, used to bootstrap the cluster and run the schema-init SQL scripts.
+- **`CanopyAppDbName`** — name of the initial application database RDS creates at provision time. `RDS.yaml` passes it as `DBName`, and `SecretsManager.yaml` writes it into the application secret's `dbname` field. Kept as an explicit parameter for symmetry with `KeycloakDbName`.
+- **`KeycloakDbName`** / **`KeycloakDbUsername`** / **`KeycloakDbPassword`** — Keycloak gets its own PostgreSQL database and role so its tables are not interwoven with the application schema. These values are consumed by `06_create_keycloak_db.sql` (via Step 12a) and by `SecretsManager.yaml` (so the ECS-Keycloak service can authenticate to the isolated DB).
+
+> ⚠️ Use a different value for `KeycloakDbPassword` than `DbMasterPassword`. That separation is the reason Keycloak has its own role in the first place.
 
 #### Step 11c. Deploy RDS Stack
 
@@ -650,6 +660,7 @@ This wraps `canopy-development/db/postgres/db-create-scripts/deploy_to_rds.py` a
    - `03_populate_base_tables.sql` - Populates lookup tables
    - `04_populate_variable_tables.sql` - Populates variable data
    - `05_populate_test_data.sql` - Adds test data (dev/test only)
+   - `06_create_keycloak_db.sql` - Creates the isolated Keycloak database and role (reads `KeycloakDbName` / `KeycloakDbUsername` / `KeycloakDbPassword` from `${CANOPY_AWS_PARAMETER_FILE}`)
 5. ✅ Provides next steps for Secrets Manager update
 
 ⏳ **Wait time:** ~5-10 minutes for all scripts to complete
@@ -799,6 +810,7 @@ Creates secrets for database credentials, API keys, and OpenSearch configuration
 - **host** — RDS endpoint (from Step 11)
 - **SEARCH_HOST** — OpenSearch endpoint (from Step 17)
 - **HostURL**, **DATAHUB_KEYCLOAK_ISSUER_URI**, **DATAHUB_KEYCLOAK_JWK_SET_URI** — all built from `PublicHostname` (configured in Step 9c). This must be the public HTTPS URL, not the raw ALB DNS, so that the values match the `iss` claim and JWKS endpoint Keycloak will advertise.
+- **KC_DB_URL**, **KC_DB_USERNAME**, **KC_DB_PASSWORD** — pre-built JDBC URL + credentials for Keycloak's isolated database (the values configured in Step 11b and materialized by Step 12a's `06_create_keycloak_db.sql`). The ECS-Keycloak task reads these at start-up so Keycloak authenticates to its own DB, not the application DB.
 
 Also update these email values for your environment before deployment:
 
@@ -1026,6 +1038,8 @@ Deploy the Keycloak-specific ECS service via CloudFormation:
 ```bash
 canopycli aws cloudformation deploy ECS-Keycloak
 ```
+
+> **Database isolation:** Keycloak authenticates to its own PostgreSQL database (configured in Step 11b, created by `06_create_keycloak_db.sql` in Step 12a, and surfaced to the container via the `KC_DB_URL` / `KC_DB_USERNAME` / `KC_DB_PASSWORD` keys in the application secret). The application database and Keycloak's internal state are fully separated; the RDS master password is no longer handed to the Keycloak container.
 
 ---
 
