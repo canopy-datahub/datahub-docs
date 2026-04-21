@@ -581,15 +581,28 @@ Then set the value in `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`:
 
 > Replace the IP above with the one returned by the `curl` command. The `/32` suffix is required.
 
-#### Step 11b. Set RDS Master Password
+#### Step 11b. Set RDS Master Password and Keycloak DB Credentials
 
-The parameter file ships with a placeholder password. **Set it before deploying** — CloudFormation passes it to `RDS.yaml` via `--parameter-overrides` and uses it as the RDS master password at creation time.
+The parameter file ships with placeholder passwords. **Set them before deploying** — CloudFormation passes them to `RDS.yaml` / `SecretsManager.yaml` via `--parameter-overrides`, and `deploy_to_rds.py` in Step 12a reads them to create the corresponding roles.
 
-In `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`, replace the placeholder:
+In `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`, replace the placeholders:
 
 ```json
-"DbMasterPassword": "REPLACEME"
+"DbMasterPassword": "REPLACEME",
+"CanopyAppDbName": "canopy_${CANOPY_ENV}",
+"KeycloakDbName": "canopy_keycloak_${CANOPY_ENV}",
+"KeycloakDbUsername": "keycloak_user",
+"KeycloakDbPassword": "REPLACEME_kc_db_password",
+"KeycloakAdminUsername": "administrator",
+"KeycloakAdminPassword": "REPLACEME_kc_admin_password"
 ```
+
+- **`DbMasterPassword`** — RDS master user password, used to bootstrap the cluster and run the schema-init SQL scripts.
+- **`CanopyAppDbName`** — name of the initial application database RDS creates at provision time. `RDS.yaml` passes it as `DBName`, and `SecretsManager.yaml` writes it into the application secret's `dbname` field. Kept as an explicit parameter for symmetry with `KeycloakDbName`.
+- **`KeycloakDbName`** / **`KeycloakDbUsername`** / **`KeycloakDbPassword`** — Keycloak gets its own PostgreSQL database and role so its tables are not interwoven with the application schema. These values are consumed by `06_create_keycloak_db.sql` (via Step 12a) and by `SecretsManager.yaml` (so the ECS-Keycloak service can authenticate to the isolated DB).
+- **`KeycloakAdminUsername`** / **`KeycloakAdminPassword`** — bootstrap credentials for the Keycloak **master** realm admin console (`${PublicHostname}/admin/master/console/`). Keycloak only reads these on the first container boot against an empty DB to seed the initial admin user — changing them later does not rotate the credentials (use the admin console or `kcadm.sh` for that). Pick values you're willing to commit to the param file.
+
+> ⚠️ Use a different value for `KeycloakDbPassword` than `DbMasterPassword`. That separation is the reason Keycloak has its own role in the first place.
 
 #### Step 11c. Deploy RDS Stack
 
@@ -650,6 +663,7 @@ This wraps `canopy-development/db/postgres/db-create-scripts/deploy_to_rds.py` a
    - `03_populate_base_tables.sql` - Populates lookup tables
    - `04_populate_variable_tables.sql` - Populates variable data
    - `05_populate_test_data.sql` - Adds test data (dev/test only)
+   - `06_create_keycloak_db.sql` - Creates the isolated Keycloak database and role (reads `KeycloakDbName` / `KeycloakDbUsername` / `KeycloakDbPassword` from `${CANOPY_AWS_PARAMETER_FILE}`)
 5. ✅ Provides next steps for Secrets Manager update
 
 ⏳ **Wait time:** ~5-10 minutes for all scripts to complete
@@ -799,10 +813,11 @@ Creates secrets for database credentials, API keys, and OpenSearch configuration
 - **host** — RDS endpoint (from Step 11)
 - **SEARCH_HOST** — OpenSearch endpoint (from Step 17)
 - **HostURL**, **DATAHUB_KEYCLOAK_ISSUER_URI**, **DATAHUB_KEYCLOAK_JWK_SET_URI** — all built from `PublicHostname` (configured in Step 9c). This must be the public HTTPS URL, not the raw ALB DNS, so that the values match the `iss` claim and JWKS endpoint Keycloak will advertise.
+- **KC_DB_URL**, **KC_DB_USERNAME**, **KC_DB_PASSWORD** — pre-built JDBC URL + credentials for Keycloak's isolated database (the values configured in Step 11b and materialized by Step 12a's `06_create_keycloak_db.sql`). The ECS-Keycloak task reads these at start-up so Keycloak authenticates to its own DB, not the application DB.
 
 Also update these email values for your environment before deployment:
 
-- **supportEmail** — Address used as the sender (From) for system emails and often in Cc (e.g., study registration, support requests). Use an address on a domain verified in SES (e.g. `*@stanford.edu` if that domain is verified).
+- **SupportEmail** — Address used as the sender (From) for system emails and often in Cc (e.g., study registration, support requests). Use an address on a domain verified in SES (e.g. `*@stanford.edu` if that domain is verified).
 - **StakeholderEmailsStudyReg** — Comma-separated list of additional recipients (Cc) for study registration and study approval emails (e.g., NIH officers). Leave empty or set as needed.
 
 ```bash
@@ -948,6 +963,7 @@ aws s3 cp target/datahub-service-email-0.0.1-SNAPSHOT-aws.jar \
 aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/email-service/
 ```
 **Expected:** Should show `datahub-service-email-0.0.1-SNAPSHOT-aws.jar`
+
 ---
 
 ### Step 21: Deploy Lambda Stack
@@ -1027,6 +1043,8 @@ Deploy the Keycloak-specific ECS service via CloudFormation:
 canopycli aws cloudformation deploy ECS-Keycloak
 ```
 
+> **Database isolation:** Keycloak authenticates to its own PostgreSQL database (configured in Step 11b, created by `06_create_keycloak_db.sql` in Step 12a, and surfaced to the container via the `KC_DB_URL` / `KC_DB_USERNAME` / `KC_DB_PASSWORD` keys in the application secret). The application database and Keycloak's internal state are fully separated; the RDS master password is no longer handed to the Keycloak container.
+
 ---
 
 #### Step 23b: Build and Push Keycloak Image
@@ -1043,80 +1061,26 @@ python deploy.py ${CANOPY_PROJECT_NAME} keycloak ${CANOPY_ENV} 26.5.4
 
 ---
 
-#### Step 23c: Initial Keycloak Configuration
-**Time:** 10 minutes
+#### Step 23c: Verify the Auto-Imported Realm
+**Time:** 2 minutes
 
-> ⚠️ **Note:** These manual steps will be replaced later by an automatic realm import.
+The `canopy-keycloak` image ships with the `CANOPY` realm baked in (sourced from `canopy.stanford.edu`, with hostnames sanitized to a sentinel that the container's entrypoint substitutes with `${KC_HOSTNAME}` at start-up). On first boot, `kc.sh start --optimized --import-realm` creates the realm, `canopy-client` public client, realm roles, and the two test users. On subsequent boots, `--import-realm` is idempotent — it sees the realm already exists and skips.
 
-Log in to the Keycloak admin console (accessible via the ALB URL on the `/admin/master/console/` path).
+Log in to the Keycloak admin console (accessible at `${PublicHostname}/admin/master/console/` — e.g. `https://canopy-prod.egyedia.com/admin/master/console/`) with the bootstrap admin credentials (`admin` / the value of `KEYCLOAK_ADMIN_PASSWORD` in the application secret).
 
-##### Create Realm
+**Verify:**
 
-1. In the top-left dropdown, click **Create realm**
-2. Set **Realm name**: `CANOPY`
-3. Click **Create**
+| Check | Where | Expected |
+|---|---|---|
+| Realm exists | Top-left realm dropdown | `CANOPY` is listed alongside `master` |
+| Client exists | `CANOPY` → Clients | `canopy-client` is present, **Client authentication: Off** (public client) |
+| Redirect URIs rendered | `canopy-client` → Settings → Valid redirect URIs | Starts with `${PublicHostname}/...`, **not** `@@PUBLIC_HOSTNAME@@` and **not** `https://canopy.stanford.edu/*` |
+| Test users exist | `CANOPY` → Users | `alice.smith@example.edu`, `bob.johnson@example.edu` (both `Password123`, `Temporary: Off`) |
+| Theme applied | Open `/realms/CANOPY/account/` | The custom `canopy` login theme renders, not the default Keycloak one |
 
-##### Create Client
+If redirect URIs still contain `@@PUBLIC_HOSTNAME@@`, the entrypoint substitution didn't run — check the ECS task logs for the `Rendered realm-import` line; if absent, verify `KC_HOSTNAME` is actually set in the task environment (it's derived from the `PublicHostname` stack parameter). If redirect URIs still contain `canopy.stanford.edu`, an unsanitized realm JSON got baked into the image — rebuild with Step 23b.
 
-Inside the `CANOPY` realm, go to **Clients → Create client**:
-
-**General settings:**
-
-| Field | Value |
-|---|---|
-| Client type | OpenID Connect |
-| Client ID | `canopy-client` |
-| Name | *(leave empty)* |
-| Description | *(leave empty)* |
-| Always display in UI | Off |
-
-**Capability config:**
-
-| Field | Value |
-|---|---|
-| Authentication flow | Standard flow |
-| PKCE Method | Choose... |
-
-**Login settings:**
-
-| Field | Value |
-|---|---|
-| Root URL | *(leave empty)* |
-| Home URL | *(leave empty)* |
-| Valid redirect URIs | `http://<YOUR_ALB_URL>/*` |
-| Web origins | `http://<YOUR_ALB_URL>` |
-
-Click **Save**.
-
-##### Create Users
-
-Inside the `CANOPY` realm, go to **Users → Create new user**.
-
-**User 1:**
-
-| Field | Value |
-|---|---|
-| Email verified | On |
-| Username | `alice.smith@example.edu` |
-| Email | `alice.smith@example.edu` |
-| First name | Alice |
-| Last name | Smith |
-
-- Click **Create**, then note the generated **UUID**.
-- Go to the **Credentials** tab → **Set password**: `******`, Temporary: **Off**
-
-**User 2:**
-
-| Field | Value |
-|---|---|
-| Email verified | On |
-| Username | `bob.johnson@example.edu` |
-| Email | `alice.smith@example.edu` |
-| First name | Bob |
-| Last name | Johnson |
-
-- Click **Create**, then note the generated **UUID**.
-- Go to the **Credentials** tab → **Set password**: `******`, Temporary: **Off**
+> **To refresh the realm** (e.g. after updating `canopy-realm.json`): delete the `CANOPY` realm in the admin console, then force a new ECS task deployment. Because `--import-realm` only skips **existing** realms, the fresh container will rebuild it from the image. The application DB (and its users in the `user_entity` table mirrored from the backend) is untouched.
 
 ---
 
