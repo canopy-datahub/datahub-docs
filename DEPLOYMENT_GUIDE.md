@@ -870,44 +870,46 @@ Lambda layers separate dependencies from code, enabling faster deployments.
 
 #### Create the Layer
 
-**Ensure Docker is running** (required for ARM64 layer build):
+**Ensure Docker is running** (required for the ARM64 cross-compile step):
 
 ```bash
-# macOS: open Docker Desktop if installed (or start Docker from Applications)
+# macOS: open Docker Desktop if installed (or start it from Applications)
 open -a Docker
 
-# Wait for Docker to finish starting (whale icon in menu bar), then verify:
+# Wait for the whale icon in the menu bar, then verify the daemon is up:
 docker info
 
-# Navigate to python script folder 
-cd ${CANOPY_HOME}/canopy-development/opensearch/opensearch_reindex
-
-# Create Lambda layer with ARM64-compatible dependencies
-python create_layer.py dependency-layer ${AWS_REGION} ${AWS_PROFILE}
+# Build + publish the layer via canopycli
+canopycli aws lambda create-layer
 ```
+
+The default layer name is `dependency-layer`; override with `--name <other>`. Pass `--dry-run` to preview without running Docker or publishing.
 
 **What this does:**
-1. Uses Docker to build ARM64-compatible Python dependencies
-2. Packages dependencies: `psycopg2-binary`, `opensearch-py`, `requests-aws4auth`, `boto3`, `requests`
-3. Publishes layer to AWS Lambda
-4. Outputs Layer ARN for CloudFormation
+1. Runs `docker run --platform linux/arm64 public.ecr.aws/lambda/python:3.11-arm64` and pip-installs the pinned dependency set into a temp directory: `psycopg2-binary==2.9.9`, `opensearch-py`, `requests-aws4auth`, `boto3`, `requests`.
+2. Verifies `psycopg2` ships an `aarch64` binary (warns loudly if it somehow doesn't).
+3. Zips the result and calls `aws lambda publish-layer-version --compatible-runtimes python3.11 --compatible-architectures arm64`.
+4. Prints the **Layer ARN** for the param file.
 
-⏳ **Wait time:** 3-5 minutes (Docker build + upload)
+⏳ **Wait time:** 3–5 minutes (Docker image pull on first run, pip install, upload).
 
-✅ **Verify:** Note the Layer ARN from the output, such as:
+✅ **Verify:** the output panel shows the `Layer ARN`, e.g.:
 ```
 Layer ARN:
-  arn:aws:lambda:us-east-1:accountId:layer:dependency-layer:1
+  arn:aws:lambda:us-east-1:<acct>:layer:dependency-layer:1
 ```
+
 #### Post-Operation: Update parameters file
 
-After the dependency layer was published, save the ARN as `LambdaDependencyLayerArn` in `parameters-${CANOPY_ENV}.json`.
+Copy the ARN into `LambdaDependencyLayerArn` in `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`, then redeploy the Lambda stack:
 
 ```json
-"LambdaDependencyLayerArn": "REPLACEME"
+"LambdaDependencyLayerArn": "arn:aws:lambda:us-east-1:<acct>:layer:dependency-layer:1"
 ```
 
-> Replace the placeholder above with the actual arn shown at the end of Step 19a.
+```bash
+canopycli aws cloudformation deploy Lambda
+```
 
 ---
 
