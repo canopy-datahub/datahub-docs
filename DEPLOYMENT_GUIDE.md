@@ -278,7 +278,7 @@ export AWS_REGION=us-east-1
 
 export CANOPY_ENV=dev
 export CANOPY_HOME=~/DATAHUB
-export CANOPY_AWS_PARAMETER_FILE=${CANOPY_HOME}/datahub-cloud-replication/parameters-${CANOPY_ENV}.json
+export CANOPY_AWS_PARAMETER_FILE=${CANOPY_HOME}/canopy-cloud-replication/parameters-${CANOPY_ENV}.json
 export CANOPY_PROJECT_NAME=$(cat ${CANOPY_AWS_PARAMETER_FILE} | grep -o '"ProjectName": "[^"]*"' | cut -d'"' -f4)
 export CANOPY_UNIQUE_ID=$(cat ${CANOPY_AWS_PARAMETER_FILE} | grep -o '"DataHubUniqueId": "[^"]*"' | cut -d'"' -f4)
 
@@ -314,7 +314,7 @@ export CANOPY_ENV=dev
 export CANOPY_HOME=~/CANOPY
 
 # Set parameter files path
-export CANOPY_AWS_PARAMETER_FILE=${CANOPY_HOME}/datahub-cloud-replication/parameters-${CANOPY_ENV}.json
+export CANOPY_AWS_PARAMETER_FILE=${CANOPY_HOME}/canopy-cloud-replication/parameters-${CANOPY_ENV}.json
 
 # Open parameters file for your environment
 nano ${CANOPY_AWS_PARAMETER_FILE} 
@@ -342,7 +342,7 @@ echo "AWS Region:   $AWS_REGION"
 ## Core AWS Infrastructure
 ### Navigate to CloudFormation repository
 ```bash
-cd ${CANOPY_HOME}/datahub-cloud-replication
+cd ${CANOPY_HOME}/canopy-cloud-replication
 ```
 
 ### Step 3: Deploy Networking Stack
@@ -464,7 +464,7 @@ The ALB DNS from Step 5 must be used in two places later, so the application and
 
    > Replace the placeholder above with the actual DNS name returned by the verify command above.
 
-2. **UI Dockerfile (Step 21)** – The frontend is built with **NEXT_PUBLIC_DEV_URL**. When you build the UI image in Step 21, pass the ALB URL in the [Dockerfile](https://github.com/canopy-datahub/datahub-ui-main/blob/feature/aws/Dockerfile)
+2. **UI Dockerfile (Step 21)** – The frontend is built with **NEXT_PUBLIC_DEV_URL**. When you build the UI image in Step 21, pass the ALB URL in the [Dockerfile](https://github.com/canopy-datahub/datahub-ui-main/blob/main/Dockerfile)
 
 
 ---
@@ -546,7 +546,7 @@ This step creates the database schema, tables, views, and initial data in your R
 
 #### 📘 Detailed Documentation
 
-**See:** [README_RDS_DEPLOYMENT.md](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
+**See:** [README_RDS_DEPLOYMENT.md](https://github.com/canopy-datahub/canopy-development/blob/main/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
 
 
 #### Quick Setup (Automated)
@@ -555,7 +555,7 @@ Use the automated Python deployment script:
 
 ```bash
 # Navigate to the python script
-cd ${CANOPY_HOME}/datahub-development/db/postgres/db-create-scripts
+cd ${CANOPY_HOME}/canopy-development/db/postgres/db-create-scripts
 
 python deploy_to_rds.py --project-name ${CANOPY_PROJECT_NAME} --env ${CANOPY_ENV} --region ${AWS_REGION} --profile ${AWS_PROFILE}
 
@@ -731,7 +731,7 @@ aws iam get-role --role-name AWSServiceRoleForAmazonOpenSearchService --profile 
 ```
 
 - **If the command returns role details** → the role already exists. Leave lines 45-49 in `OpenSearch.yaml` commented out and proceed.
-- **If the command returns a `NoSuchEntity` error** → the role does not exist yet. Uncomment lines 45-49 in [OpenSearch.yaml](https://github.com/canopy-datahub/datahub-cloud-replication/blob/feature/aws/modules/OpenSearch.yaml) (under `datahub-cloud-replication/modules`) before running the deploy command below. CloudFormation will create the role as part of the stack.
+- **If the command returns a `NoSuchEntity` error** → the role does not exist yet. Uncomment lines 45-49 in [OpenSearch.yaml](https://github.com/canopy-datahub/canopy-cloud-replication/blob/main/modules/OpenSearch.yaml) (under `canopy-cloud-replication/modules`) before running the deploy command below. CloudFormation will create the role as part of the stack.
 
 > **Note:** Never uncomment those lines if the role already exists — attempting to create it again will cause the stack to fail.
 
@@ -808,7 +808,7 @@ aws secretsmanager describe-secret \
 ---
 
 ### Step 14: OpenSearch Reindex Lambda 
-📘 For detailed OpenSearch reindex lambda deployment documentation, see: [README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
+📘 For detailed OpenSearch reindex lambda deployment documentation, see: [README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md](https://github.com/canopy-datahub/canopy-development/blob/main/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
 
 #### Step 14a: Create Lambda Layer
 **Time:** 5 minutes
@@ -855,7 +855,7 @@ open -a Docker
 docker info
 
 # Navigate to python script folder 
-cd ${CANOPY_HOME}/datahub-development/opensearch/opensearch_reindex
+cd ${CANOPY_HOME}/canopy-development/opensearch/opensearch_reindex
 
 # Create Lambda layer with ARM64-compatible dependencies
 python create_layer.py dependency-layer ${AWS_REGION} ${AWS_PROFILE}
@@ -946,7 +946,7 @@ aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${CAN
 Creates Lambda functions for OpenSearch indexing and email service.
 
 ```bash
-cd ${CANOPY_HOME}/datahub-cloud-replication
+cd ${CANOPY_HOME}/canopy-cloud-replication
 
 aws cloudformation deploy \
   --stack-name ${CANOPY_PROJECT_NAME}-Lambda-${CANOPY_ENV} \
@@ -1037,7 +1037,7 @@ Deploys Keycloak as a dedicated ECS service for identity and access management.
 Deploy the Keycloak-specific ECS service via CloudFormation:
 
 ```bash
-cd ${CANOPY_HOME}/datahub-cloud-replication
+cd ${CANOPY_HOME}/canopy-cloud-replication
 aws cloudformation deploy \
   --stack-name ${CANOPY_PROJECT_NAME}-ECS-Keycloak-${CANOPY_ENV} \
   --template-file modules/ECS-Keycloak.yaml \
@@ -1055,7 +1055,7 @@ aws cloudformation deploy \
 Build the Keycloak Docker image and push it to ECR:
 
 ```bash
-cd ${CANOPY_HOME}/datahub-deployment-scripts
+cd ${CANOPY_HOME}/canopy-deployment-scripts
 python deploy.py ${CANOPY_PROJECT_NAME} keycloak ${CANOPY_ENV} 26.5.4
 ```
 
@@ -1156,7 +1156,7 @@ By default, the SES stack creates three email identities:
 
 **To use your own email addresses:**
 
-Edit [`modules/SES.yaml`](https://github.com/canopy-datahub/datahub-cloud-replication/blob/feature/aws/modules/SES.yaml) and replace the default email identities with your organization's emails.
+Edit [`modules/SES.yaml`](https://github.com/canopy-datahub/canopy-cloud-replication/blob/main/modules/SES.yaml) and replace the default email identities with your organization's emails.
 
 💡 **Tip:** Using a domain identity (e.g., `yourdomain.com`) allows you to send emails from any address at that domain without verifying each individual email.
 
@@ -1266,7 +1266,7 @@ aws ec2 allocate-address \
 #### Step 20b: Deploy TransferFamily Stack
 
 ```bash
-cd ~/dataHub/datahub-cloud-replication
+cd ~/dataHub/canopy-cloud-replication
 
 # Without Elastic IP:
 aws cloudformation deploy \
@@ -1430,7 +1430,7 @@ NODE_TLS_REJECT_UNAUTHORIZED=1
 #### Step 21b: Install Python Dependencies
 
 ```bash
-cd ${CANOPY_HOME}/datahub-deployment-scripts
+cd ${CANOPY_HOME}/canopy-deployment-scripts
 
 # Install boto3 for deploy.py script
 pip install boto3
@@ -1444,7 +1444,7 @@ pip install -r requirements-deploy.txt
 The `deploy.py` script automates the entire build and deployment process. For the UI service it automatically reads `.env.local` and passes the values as Docker build args — no extra flags needed.
 
 ```bash
-cd ${CANOPY_HOME}/datahub-deployment-scripts
+cd ${CANOPY_HOME}/canopy-deployment-scripts
 
 # Usage: python deploy.py <project-name> <service-name> <environment> [image-tag]
 # project-name, service-name and environment are required; image-tag defaults to 'latest'.
@@ -1673,8 +1673,8 @@ aws opensearch describe-domain --domain-name ${CANOPY_PROJECT_NAME}-opensearch-$
 2. **Review CloudFormation Events** - Shows why stacks failed
 3. **AWS Console** - Visual inspection of resources
 4. **Documentation** - Check service-specific READMEs:
-   - [RDS Deployment](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
-   - [Lambda Deployment](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
+   - [RDS Deployment](https://github.com/canopy-datahub/canopy-development/blob/main/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
+   - [Lambda Deployment](https://github.com/canopy-datahub/canopy-development/blob/main/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
 
 ---
 
