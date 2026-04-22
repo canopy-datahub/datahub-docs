@@ -277,7 +277,7 @@ export AWS_PROFILE=datahub-rep
 export AWS_REGION=us-east-1
 
 export CANOPY_ENV=dev
-export CANOPY_HOME=~/DATAHUB
+export CANOPY_HOME=~/CANOPY
 export CANOPY_AWS_PARAMETER_FILE=${CANOPY_HOME}/canopy-cloud-replication/parameters-${CANOPY_ENV}.json
 export CANOPY_PROJECT_NAME=$(cat ${CANOPY_AWS_PARAMETER_FILE} | grep -o '"ProjectName": "[^"]*"' | cut -d'"' -f4)
 export CANOPY_UNIQUE_ID=$(cat ${CANOPY_AWS_PARAMETER_FILE} | grep -o '"DataHubUniqueId": "[^"]*"' | cut -d'"' -f4)
