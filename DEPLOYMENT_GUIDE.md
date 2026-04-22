@@ -914,42 +914,48 @@ After the dependency layer was published, save the ARN as `LambdaDependencyLayer
 #### Step 19b: Upload OpenSearch Reindex Lambda Code
 **Time:** 5 minutes
 
-Package and upload Lambda function code to S3.
+Package and upload the OpenSearch-reindex Lambda code + index mapping JSONs to the project's `lambda-artifacts` S3 bucket. Pass `--dry-run` to preview without building/uploading.
 
-**Script Usage:**
 ```bash
-python deploy_lambda.py ${CANOPY_PROJECT_NAME} ${CANOPY_ENV} ${CANOPY_DEPLOYMENT_ID}
+canopycli aws lambda deploy opensearch-reindex
 ```
+
 **What this does:**
-1. Validates required files exist
-2. Packages Lambda code with mapping files:
+1. Zips the four files from `${CANOPY_HOME}/canopy-development/opensearch/opensearch_reindex/`:
    - `opensearch_reindex_aws.py`
    - `search_index_mapping.json`
    - `variable_index_mapping.json`
    - `autocomplete_index_mapping.json`
-3. Creates ZIP (should be <100KB)
-4. Uploads to S3: `s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/opensearch-refresh/`
+2. Uploads to `s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${DeploymentId}-${CANOPY_ENV}/opensearch-refresh/opensearch-refresh-lambda.zip`.
+3. Prints a hint with the exact `aws lambda update-function-code` command for subsequent hot updates (only needed after the Lambda stack has been deployed at least once).
 
-⚠️ **Note:** Dependencies are NOT included (they're in the layer from Step 19a)
+⚠️ **Note:** Dependencies are NOT included — they come from the layer built in Step 19a. A warning appears if the zip exceeds 1 MB (usually a sign the layer content leaked in).
 
 ✅ **Verify:** Check S3 upload
 ```bash
-aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/opensearch-refresh/
+aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${DeploymentId}-${CANOPY_ENV}/opensearch-refresh/
 ```
 **Expected:** Should show `opensearch-refresh-lambda.zip`
 
 ### Step 20: Upload Email Service Lambda Code
 
+Maven-build the `datahub-service-email` Spring Boot project and upload the resulting AWS-bundled jar to the `lambda-artifacts` bucket:
+
 ```bash
-cd ${CANOPY_HOME}/datahub-service-email
-
-# Build Spring Boot application for Lambda
-mvn clean package -DskipTests
-
-# Upload to S3
-aws s3 cp target/datahub-service-email-0.0.1-SNAPSHOT-aws.jar \
-  s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/email-service/
+canopycli aws lambda deploy email-service
 ```
+
+**What this does:**
+1. Runs `mvn clean package -DskipTests -q` in `${CANOPY_HOME}/datahub-service-email`.
+2. Picks the `*-aws.jar` artifact from `target/` (falling back to a plain `*.jar` if no `-aws` variant is produced).
+3. Uploads to `s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${DeploymentId}-${CANOPY_ENV}/email-service/<jar-name>`.
+4. Prints the `aws lambda update-function-code` command for subsequent updates.
+
+✅ **Verify:** Check S3 upload
+```bash
+aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${DeploymentId}-${CANOPY_ENV}/email-service/
+```
+**Expected:** A single `datahub-service-email-*.jar`.
 ✅ **Verify:** Check S3 upload
 ```bash
 aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/email-service/
