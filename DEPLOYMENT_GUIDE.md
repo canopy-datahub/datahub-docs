@@ -143,8 +143,7 @@ Use this checklist to track your progress. Each step links to detailed instructi
   - [ ] **Step 26d:** [Register SFTP User in Database](#step-26d-register-the-sftp-user-in-the-database--required) (repeat per submitter)
 - [ ] **Step 27:** [Build and Deploy Services](#step-27-build-and-deploy-services) (50 min)
   - [ ] **Step 27a:** [Configure UI Environment Variables](#step-27a-configure-ui-environment-variables)
-  - [ ] **Step 27b:** [Install Python Dependencies](#step-27b-install-python-dependencies)
-  - [ ] **Step 27c:** [Deploy All Services](#step-27c-deploy-all-services)
+  - [ ] **Step 27b:** [Deploy All Services](#step-27b-deploy-all-services)
 
 ### Post-Deployment (10 min)
 - [ ] **Step 28:** [Verify Deployment](#step-28-verify-deployment)
@@ -1040,11 +1039,10 @@ Deploys Keycloak as a dedicated ECS service for identity and access management.
 Build the Keycloak Docker image and push it to ECR **before** creating the ECS service. The ECS service in Step 23b references this image by URI; if the image isn't in ECR when the service starts, every task will fail with `CannotPullContainerError` and the ECS deployment circuit breaker will trip.
 
 ```bash
-cd ${CANOPY_HOME}/canopy-deployment-scripts
-python deploy.py ${CANOPY_PROJECT_NAME} keycloak ${CANOPY_ENV} 26.5.4
+canopycli aws ecs deploy keycloak
 ```
 
-> The `26.5.4` argument pins the Keycloak image to a specific version tag.
+For `keycloak` the `--tag` flag is optional — canopycli reads `KeycloakImageTag` from `aws-parameters-${CANOPY_ENV}-${USERNAME}.json` (currently `26.5.4`) and uses it as the image tag. Pass `--tag <other>` to override, or `--dry-run` to preview without building.
 
 ✅ **Verify:** the image is in ECR:
 
@@ -1447,48 +1445,33 @@ NEXT_PUBLIC_GTAG=G-XXXXXXXXXX
 NODE_TLS_REJECT_UNAUTHORIZED=1
 ```
 
-#### Step 27b: Install Python Dependencies
+#### Step 27b: Deploy All Services
+
+`canopycli aws ecs deploy <service>` automates the full build-and-deploy pipeline for every service. For the UI it automatically reads `.env.production` and passes the values as Docker build args — no extra flags needed.
 
 ```bash
-cd ${CANOPY_HOME}/datahub-deployment-scripts
-
-# Install boto3 for deploy.py script
-pip install boto3
-
-# Or use requirements file
-pip install -r requirements-deploy.txt
+# Deploy each service (one at a time; --tag defaults to 'latest' for all except keycloak)
+canopycli aws ecs deploy user-service
+canopycli aws ecs deploy submission-service
+canopycli aws ecs deploy report-service
+canopycli aws ecs deploy download-service
+canopycli aws ecs deploy entity-service
+canopycli aws ecs deploy search-service
+canopycli aws ecs deploy ui
 ```
 
-#### Step 27c: Deploy All Services
+Pass `--tag <value>` to override the image tag and `--dry-run` to preview without executing.
 
-The `deploy.py` script automates the entire build and deployment process. For the UI service it automatically reads `.env.local` and passes the values as Docker build args — no extra flags needed.
-
-```bash
-cd ${CANOPY_HOME}/datahub-deployment-scripts
-
-# Usage: python deploy.py <project-name> <service-name> <environment> [image-tag]
-# project-name, service-name and environment are required; image-tag defaults to 'latest'.
-
-# Deploy each service (one at a time)
-python deploy.py ${CANOPY_PROJECT_NAME} user-service ${CANOPY_ENV}
-python deploy.py ${CANOPY_PROJECT_NAME} submission-service ${CANOPY_ENV}
-python deploy.py ${CANOPY_PROJECT_NAME} report-service ${CANOPY_ENV}
-python deploy.py ${CANOPY_PROJECT_NAME} download-service ${CANOPY_ENV}
-python deploy.py ${CANOPY_PROJECT_NAME} entity-service ${CANOPY_ENV}
-python deploy.py ${CANOPY_PROJECT_NAME} search-service ${CANOPY_ENV}
-python deploy.py ${CANOPY_PROJECT_NAME} ui ${CANOPY_ENV}     
-```
-
-**What the script does for EACH service:**
-1. ✅ Verifies source directory and Dockerfile exist
+**What the pipeline does for EACH service:**
+1. ✅ Verifies source directory and Dockerfile exist under `${CANOPY_HOME}`
 2. ✅ Builds the application:
-   - **Backend services**: Runs `mvn clean package -DskipTests`
-   - **Frontend (UI)**: Build handled by Docker multi-stage
-3. ✅ Authenticates with AWS ECR
-4. ✅ Builds Docker image for `linux/amd64` platform
-5. ✅ Pushes image to ECR repository
-6. ✅ Forces ECS service redeployment with new image
-7. ✅ Verifies deployment was triggered
+   - **Backend services**: runs `mvn clean package -DskipTests -q`
+   - **Frontend (ui)** and **keycloak**: build handled inside the Dockerfile (no local build)
+3. ✅ Authenticates Docker with AWS ECR (via STS + ECR auth token)
+4. ✅ `docker buildx build --platform linux/amd64 --push` (falls back to `docker build` + `docker push` if buildx isn't available)
+5. ✅ Triggers ECS `UpdateService --force-new-deployment` on the running service
+6. ✅ Polls the PRIMARY deployment for up to 60 s and reports when it's accepted
+7. ℹ️ If the ECS service isn't ACTIVE yet (first-run or post-teardown), prints a clear "create the CFN stack first" message and exits 0 — the image is already in ECR
 
 ⏳ **Wait time:** ~5-7 minutes per service (~50 minutes total)
 
