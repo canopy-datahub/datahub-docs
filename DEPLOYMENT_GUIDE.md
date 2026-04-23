@@ -730,15 +730,11 @@ canopycli aws cloudformation deploy ECR
 ```
 
 **What's created:**
-- ECR repositories for each microservice:
-  - `${CANOPY_PROJECT_NAME}-approved-data-service/{CANOPY_ENV}`
+- ECR repositories for each microservice (one per service × env):
   - `${CANOPY_PROJECT_NAME}-download-service/{CANOPY_ENV}`
   - `${CANOPY_PROJECT_NAME}-entityservice/{CANOPY_ENV}`
   - `${CANOPY_PROJECT_NAME}-keycloak/{CANOPY_ENV}`
-  - `${CANOPY_PROJECT_NAME}-opensearchrefresh/{CANOPY_ENV}`
-  - `${CANOPY_PROJECT_NAME}-publicationscript/{CANOPY_ENV}`
   - `${CANOPY_PROJECT_NAME}-report-service/{CANOPY_ENV}`
-  - `${CANOPY_PROJECT_NAME}-reporter/{CANOPY_ENV}`
   - `${CANOPY_PROJECT_NAME}-search/{CANOPY_ENV}`
   - `${CANOPY_PROJECT_NAME}-submission-service/{CANOPY_ENV}`
   - `${CANOPY_PROJECT_NAME}-ui/{CANOPY_ENV}`
@@ -764,7 +760,7 @@ Edit `aws-parameters-${CANOPY_ENV}-${USERNAME}.json` and update:
 ```json
 {
   "OpenSearchUsername": "opensearch",
-  "OpenSearchPassword": "ChangeMe@2026"
+  "OpenSearchPassword": "REPLACEME"
 }
 ```
 
