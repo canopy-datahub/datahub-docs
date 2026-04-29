@@ -100,7 +100,7 @@ Use this checklist to track your progress. Each step links to detailed instructi
 - [ ] **Step 6:** [Deploy the Bootstrap Stack](#step-6-deploy-the-bootstrap-stack) (2 min)
 - [ ] **Step 7:** [Deploy Networking Stack](#step-7-deploy-networking-stack) (5 min)
 - [ ] **Step 8:** [Deploy S3 Stack](#step-8-deploy-s3-stack) (5 min)
-  - [ ] **Step 8a:** [Configure DeploymentId](#step-8a-configure-datahubuniqueid-for-s3-buckets)
+  - [ ] **Step 8a:** [Configure DeploymentId](#step-8a-configure-deploymentid-for-s3-buckets)
   - [ ] **Step 8b:** [Deploy into AWS](#step-8b-deploy-into-aws)
 - [ ] **Step 9:** [Request SSL/TLS Certificate (ACM)](#step-9-request-ssltls-certificate-acm) (10 min)
   - [ ] **Step 9a:** [Request a Certificate in ACM](#step-9a-request-a-certificate-in-acm)
@@ -157,7 +157,7 @@ Use this checklist to track your progress. Each step links to detailed instructi
 ### Step 1: Create Canopy Home
 **Time:** 1 minute
 
-To work with the Canopy DataHub infrastructure, we strongly recommend that you create a dedicated directory for all the repositories you will be working with.
+To work with the Canopy infrastructure, we strongly recommend that you create a dedicated directory for all the repositories you will be working with.
 This guide will assume that you are following this best practice.
 
 🖥️ **Execute**:
@@ -169,7 +169,7 @@ mkdir ~/CANOPY
 ### Step 2: Set Up Canopy CLI
 **Time:** 5 minutes
 
-Canopy CLI is a command-line tool that you can use to interact with the Canopy DataHub infrastructure.
+Canopy CLI is a command-line tool that you can use to interact with the Canopy infrastructure.
 It hides the complexity of several commands during this setup and allows you to focus on the actual deployment.
 We will use it extensively throughout this guide.
 
@@ -203,7 +203,7 @@ python cli.py
 ### Step 3: Clone Repositories
 **Time:** 5 minutes
 
-Clone all necessary repositories from the Canopy DataHub GitHub organization:
+Clone all necessary repositories from the Canopy GitHub organization:
 
 🖥️ **Execute**:
 ```bash
@@ -415,7 +415,7 @@ canopycli aws cloudformation status Networking
 
 Creates S3 buckets for data files, metadata files, data dictionary files and lambda functions code.
 
-#### step 4a. Configure DeploymentId for S3 Buckets 
+#### Step 8a. Configure DeploymentId for S3 Buckets
 
 S3 bucket names must be globally unique. Update the `DeploymentId` parameter, and **reload the env vars**:
 
@@ -767,7 +767,7 @@ canopycli aws cloudformation deploy OpenSearch
 ```bash
 canopycli aws opensearch endpoint
 ```
-**Expected:** Endpoint like `vpc-datahub-opensearch-dev-abc123.us-east-1.es.amazonaws.com`
+**Expected:** Endpoint like `vpc-canopy-opensearch-dev-abc123.us-east-1.es.amazonaws.com`
 
 #### Post-Deployment: Update Secrets Manager
 
@@ -797,7 +797,7 @@ Creates secrets for database credentials, API keys, and OpenSearch configuration
 
 Also update these email values for your environment before deployment:
 
-- **SupportEmail** — Address used as the sender (From) for system emails and often in Cc (e.g., study registration, support requests). Use an address on a domain verified in SES (e.g. `*@stanford.edu` if that domain is verified).
+- **SupportEmail** — Address used as the sender (From) for system emails and often in Cc (e.g., study registration, support requests). Use an address on a domain verified in SES (e.g. `*@example.com` if that domain is verified).
 - **StakeholderEmailsStudyReg** — Comma-separated list of additional recipients (Cc) for study registration and study approval emails (e.g., NIH officers). Leave empty or set as needed.
 
 ```bash
@@ -916,14 +916,14 @@ aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-$
 
 ### Step 19: Upload Email Service Lambda Code
 
-Maven-build the `datahub-service-email` Spring Boot project and upload the resulting AWS-bundled jar to the `lambda-artifacts` bucket:
+Maven-build the `canopy-service-email` Spring Boot project and upload the resulting AWS-bundled jar to the `lambda-artifacts` bucket:
 
 ```bash
 canopycli aws lambda deploy email-service
 ```
 
 **What this does:**
-1. Runs `mvn clean package -DskipTests -q` in `${CANOPY_HOME}/datahub-service-email`.
+1. Runs `mvn clean package -DskipTests -q` in `${CANOPY_HOME}/canopy-service-email`.
 2. Picks the `*-aws.jar` artifact from `target/` (falling back to a plain `*.jar` if no `-aws` variant is produced).
 3. Uploads to `s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/email-service/<jar-name>`.
 4. Prints the `aws lambda update-function-code` command for subsequent updates.
@@ -932,7 +932,7 @@ canopycli aws lambda deploy email-service
 ```bash
 aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/email-service/
 ```
-**Expected:** Should show a single `datahub-service-email-*.jar`.
+**Expected:** Should show a single `canopy-service-email-*.jar`.
 
 ---
 
@@ -1058,11 +1058,11 @@ This resolves to `${PublicHostname}/admin/master/console/` (e.g. `https://canopy
 |---|---|---|
 | Realm exists | Top-left realm dropdown | `CANOPY` is listed alongside `master` |
 | Client exists | `CANOPY` → Clients | `canopy-client` is present, **Client authentication: Off** (public client) |
-| Redirect URIs rendered | `canopy-client` → Settings → Valid redirect URIs | Starts with `${PublicHostname}/...`, **not** `@@PUBLIC_HOSTNAME@@` and **not** `https://canopy.stanford.edu/*` |
+| Redirect URIs rendered | `canopy-client` → Settings → Valid redirect URIs | Starts with `${PublicHostname}/...`, **not** `@@PUBLIC_HOSTNAME@@` and **not** `https://canopy.example.com/*` |
 | Test user exists | `CANOPY` → Users | `test@test.com` (password `Password123`, `Temporary: Off`, UUID `333e4567-e89b-12d3-a456-426614174002` — pinned to match `users.uuid` for `id=3` in the canopy DB) |
 | Theme applied | `canopycli aws open keycloak-realm` (takes you to the CANOPY realm console) | The custom `canopy` login theme renders, not the default Keycloak one |
 
-If redirect URIs still contain `@@PUBLIC_HOSTNAME@@`, the entrypoint substitution didn't run — check the ECS task logs for the `Rendered realm-import` line; if absent, verify `KC_HOSTNAME` is actually set in the task environment (it's derived from the `PublicHostname` stack parameter). If redirect URIs still contain `canopy.stanford.edu`, an unsanitized realm JSON got baked into the image — rebuild with Step 22b.
+If redirect URIs still contain `@@PUBLIC_HOSTNAME@@`, the entrypoint substitution didn't run — check the ECS task logs for the `Rendered realm-import` line; if absent, verify `KC_HOSTNAME` is actually set in the task environment (it's derived from the `PublicHostname` stack parameter). If redirect URIs still contain `canopy.example.com`, an unsanitized realm JSON got baked into the image — rebuild with Step 22b.
 
 > **To refresh the realm** (e.g. after updating `CANOPY-realm.json`): delete the `CANOPY` realm in the admin console, then force a new ECS task deployment. Because `--import-realm` only skips **existing** realms, the fresh container will rebuild it from the image. The application DB (and its users in the `user_entity` table mirrored from the backend) is untouched.
 
@@ -1175,7 +1175,7 @@ You can now send from any `*@${SenderDomain}` — skip Option 2.
 
 Use this path only when:
 - `SenderDomain` is empty (you chose not to verify a domain), **or**
-- `SupportEmail` is outside `SenderDomain` (e.g. `SupportEmail=you@stanford.edu` but `SenderDomain=your-side-project.io` — mismatched domains, which Step 23a warns against).
+- `SupportEmail` is outside `SenderDomain` (e.g. `SupportEmail=you@example.com` but `SenderDomain=your-side-project.io` — mismatched domains, which Step 23a warns against).
 
 AWS automatically sends a "Verify your email" link to the `SupportEmail` address the moment the CFN identity is created. Open that inbox, click the link, and the status flips to `Verified`. Confirm:
 
@@ -1393,7 +1393,7 @@ Before proceeding, ensure:
 
 #### Step 26a: Configure UI Environment Variables
 
-The UI build bakes `NEXT_PUBLIC_*` values into the Next.js bundle at `docker build` time — they're injected as `--build-arg` from `${CANOPY_HOME}/datahub-ui-main/.env.${CANOPY_ENV}`. Generate that file from the template with:
+The UI build bakes `NEXT_PUBLIC_*` values into the Next.js bundle at `docker build` time — they're injected as `--build-arg` from `${CANOPY_HOME}/canopy-ui-main/.env.${CANOPY_ENV}`. Generate that file from the template with:
 
 ```bash
 canopycli init ui-env
@@ -1402,7 +1402,7 @@ canopycli init ui-env
 (Pass `--force` to overwrite an existing `.env.${CANOPY_ENV}`.)
 
 **What this does:**
-1. Reads `${CANOPY_HOME}/datahub-ui-main/.env.example` line by line (preserving comments).
+1. Reads `${CANOPY_HOME}/canopy-ui-main/.env.example` line by line (preserving comments).
 2. Auto-fills any key whose value is already in the param file:
    - `NEXT_PUBLIC_BACKEND_URL`        ← `PublicHostname`
    - `NEXT_PUBLIC_KEYCLOAK_URL`       ← `PublicHostname`
@@ -1410,9 +1410,9 @@ canopycli init ui-env
    - `NEXT_PUBLIC_KEYCLOAK_CLIENT_ID` ← `KeycloakClientId`
    - `NODE_TLS_REJECT_UNAUTHORIZED`   ← `1` (hardcoded)
 3. Leaves un-mapped keys (e.g. `NEXT_PUBLIC_GTAG` — the optional Google Analytics Measurement ID) with their `.env.example` defaults for you to fill in manually if needed.
-4. Writes the result to `${CANOPY_HOME}/datahub-ui-main/.env.${CANOPY_ENV}` (e.g. `.env.prod`).
+4. Writes the result to `${CANOPY_HOME}/canopy-ui-main/.env.${CANOPY_ENV}` (e.g. `.env.prod`).
 
-✅ **Verify:** open the generated file — `cat ${CANOPY_HOME}/datahub-ui-main/.env.${CANOPY_ENV}` — and confirm the auto-filled values line up with your deployment. If you want GA tracking, fill in `NEXT_PUBLIC_GTAG` before the UI build in Step 26b.
+✅ **Verify:** open the generated file — `cat ${CANOPY_HOME}/canopy-ui-main/.env.${CANOPY_ENV}` — and confirm the auto-filled values line up with your deployment. If you want GA tracking, fill in `NEXT_PUBLIC_GTAG` before the UI build in Step 26b.
 
 > When `canopycli aws ecs deploy ui` runs in Step 26b, it reads this same `.env.${CANOPY_ENV}` and passes every `NEXT_PUBLIC_*` value as a `--build-arg` to the Dockerfile's multi-stage Next.js build.
 
@@ -1553,7 +1553,7 @@ curl http://$ALB_DNS/api/submission-service/v1/actuator/health
 
 Open your browser and navigate to: `http://{ALB_DNS}`
 
-✅ **Success!** You should see the DataHub login page.
+✅ **Success!** You should see the Canopy login page.
 
 ---
 
@@ -1699,7 +1699,7 @@ If the stack still cannot delete RDS (e.g., due to automated snapshots), you may
 ECR repositories with images cannot be deleted by CloudFormation. Delete all images in each repository:
 
 ```bash
-# List all DataHub ECR repositories
+# List all Canopy ECR repositories
 aws ecr describe-repositories --query "repositories[?contains(repositoryName, '${CANOPY_PROJECT_NAME}')].repositoryName" --output text
 
 for repo in $(aws ecr describe-repositories --query "repositories[?contains(repositoryName, '${CANOPY_PROJECT_NAME}')].repositoryName" --output text); do
@@ -1768,7 +1768,7 @@ The ACM certificate created in Step 9 is **intentionally outside the CloudFormat
 
 ## Summary
 
-🎉 **Congratulations!** You've successfully deployed DataHub to AWS!
+🎉 **Congratulations!** You've successfully deployed Canopy to AWS!
 
 **What you've deployed:**
 - ✅ Complete VPC network infrastructure
