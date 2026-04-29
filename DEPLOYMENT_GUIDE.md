@@ -957,7 +957,7 @@ aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-$
 ```bash
 aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/email-service/
 ```
-**Expected:** Should show `datahub-service-email-0.0.1-SNAPSHOT-aws.jar`
+**Expected:** Should show `datahub-service-email-0.0.2-SNAPSHOT-aws.jar`
 
 ---
 
