@@ -923,14 +923,14 @@ canopycli aws lambda deploy opensearch-reindex
    - `search_index_mapping.json`
    - `variable_index_mapping.json`
    - `autocomplete_index_mapping.json`
-2. Uploads to `s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${DeploymentId}-${CANOPY_ENV}/opensearch-refresh/opensearch-refresh-lambda.zip`.
+2. Uploads to `s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/opensearch-refresh/opensearch-refresh-lambda.zip`.
 3. Prints a hint with the exact `aws lambda update-function-code` command for subsequent hot updates (only needed after the Lambda stack has been deployed at least once).
 
 ⚠️ **Note:** Dependencies are NOT included — they come from the layer built in Step 19a. A warning appears if the zip exceeds 1 MB (usually a sign the layer content leaked in).
 
 ✅ **Verify:** Check S3 upload
 ```bash
-aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${DeploymentId}-${CANOPY_ENV}/opensearch-refresh/
+aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/opensearch-refresh/
 ```
 **Expected:** Should show `opensearch-refresh-lambda.zip`
 
@@ -945,12 +945,12 @@ canopycli aws lambda deploy email-service
 **What this does:**
 1. Runs `mvn clean package -DskipTests -q` in `${CANOPY_HOME}/datahub-service-email`.
 2. Picks the `*-aws.jar` artifact from `target/` (falling back to a plain `*.jar` if no `-aws` variant is produced).
-3. Uploads to `s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${DeploymentId}-${CANOPY_ENV}/email-service/<jar-name>`.
+3. Uploads to `s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/email-service/<jar-name>`.
 4. Prints the `aws lambda update-function-code` command for subsequent updates.
 
 ✅ **Verify:** Check S3 upload
 ```bash
-aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${DeploymentId}-${CANOPY_ENV}/email-service/
+aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/email-service/
 ```
 **Expected:** A single `datahub-service-email-*.jar`.
 ✅ **Verify:** Check S3 upload
