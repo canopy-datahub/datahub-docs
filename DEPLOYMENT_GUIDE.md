@@ -901,11 +901,6 @@ Copy the ARN into `LambdaDependencyLayerArn` in `aws-parameters-${CANOPY_ENV}-${
 ```json
 "LambdaDependencyLayerArn": "arn:aws:lambda:us-east-1:<acct>:layer:dependency-layer:1"
 ```
-
-```bash
-canopycli aws cloudformation deploy Lambda
-```
-
 ---
 
 #### Step 19b: Upload OpenSearch Reindex Lambda Code
