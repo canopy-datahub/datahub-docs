@@ -947,12 +947,7 @@ canopycli aws lambda deploy email-service
 ```bash
 aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/email-service/
 ```
-**Expected:** A single `datahub-service-email-*.jar`.
-✅ **Verify:** Check S3 upload
-```bash
-aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/email-service/
-```
-**Expected:** Should show `datahub-service-email-0.0.2-SNAPSHOT-aws.jar`
+**Expected:** Should show a single `datahub-service-email-*.jar`.
 
 ---
 
