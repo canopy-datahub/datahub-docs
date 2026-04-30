@@ -73,7 +73,7 @@ ENDPOINT=$(aws rds describe-db-instances \
   --region ${AWS_REGION} --profile ${AWS_PROFILE} \
   --query "DBInstances[0].Endpoint.Address" --output text)
 
-psql -h ${ENDPOINT} -U datahubpostgres${ENV} -d ${PROJECT_NAME}_${ENV}
+psql -h ${ENDPOINT} -U canopy_postgres_${ENV} -d ${PROJECT_NAME}_${ENV}
 ```
 
 Then in the psql session:

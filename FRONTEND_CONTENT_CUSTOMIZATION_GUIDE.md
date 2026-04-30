@@ -37,7 +37,7 @@ All changes require rebuilding and redeploying the frontend application to take 
 
 The homepage footer contains two columns of links - **Related Websites** and **Website Policies** - that are currently **hardcoded in the frontend codebase**. These links are not managed through a database or admin interface.
 
-**Location:** `/datahub-ui-main/components/CoreLayout/Footer/Footer.jsx`
+**Location:** `/canopy-ui-main/components/CoreLayout/Footer/Footer.jsx`
 
 ### Editing Footer Links
 
@@ -45,7 +45,7 @@ To customize the footer links for your deployment:
 
 #### Step 1: Navigate to the Footer Component
 
-File path: `/datahub-ui-main/components/CoreLayout/Footer/Footer.jsx`
+File path: `/canopy-ui-main/components/CoreLayout/Footer/Footer.jsx`
 
 #### Step 2: Edit the "Related Websites" Section
 
@@ -105,7 +105,7 @@ To add an external link icon next to a link, wrap it in a `<div>` and add the `<
 
 The footer contains social media links in the "Connect with Us" section - **YouTube** and **Email/Newsletter** icons - that are currently **hardcoded in the frontend codebase**. These links are not managed through a database or admin interface.
 
-**Location:** `/datahub-ui-main/components/CoreLayout/Footer/Footer.jsx`
+**Location:** `/canopy-ui-main/components/CoreLayout/Footer/Footer.jsx`
 
 ### Editing Social Media Links
 
@@ -113,7 +113,7 @@ To customize the YouTube and email links in the footer:
 
 #### Step 1: Navigate to the Footer Component
 
-File path: `/datahub-ui-main/components/CoreLayout/Footer/Footer.jsx`
+File path: `/canopy-ui-main/components/CoreLayout/Footer/Footer.jsx`
 
 #### Step 2: Locate the Social Media Links Section
 
@@ -234,9 +234,9 @@ Each category tab has a dedicated card component file:
 | Tab | File Location | Type Value |
 |-----|---------------|------------|
 | All | *(No separate file - auto-generated from all categories)* | `'all'` |
-| General | `datahub-ui-main/views/ResourceCenter/Components/GeneralCards.jsx` | `'general'` | 
-| For Researchers | `datahub-ui-main/views/ResourceCenter/Components/ForResearchersCards.jsx` | `'forResearchers'` | 
-| For Submitters | `datahub-ui-main/views/ResourceCenter/Components/ForSubmittersCards.jsx` | `'forSubmitters'` | 
+| General | `canopy-ui-main/views/ResourceCenter/Components/GeneralCards.jsx` | `'general'` | 
+| For Researchers | `canopy-ui-main/views/ResourceCenter/Components/ForResearchersCards.jsx` | `'forResearchers'` | 
+| For Submitters | `canopy-ui-main/views/ResourceCenter/Components/ForSubmittersCards.jsx` | `'forSubmitters'` | 
 
 **Note:** The "All" tab automatically displays cards from all category tabs combined. You do not need to edit or create a separate file for the "All" tab - it automatically updates when you add or modify cards in any category tab.
 
@@ -244,13 +244,13 @@ Each category tab has a dedicated card component file:
 
 The main component that coordinates all tabs:
 ```
-datahub-ui-main/views/ResourceCenter/ResourceCenter.jsx
+canopy-ui-main/views/ResourceCenter/ResourceCenter.jsx
 ```
 
 #### Styling
 
 ```
-datahub-ui-main/views/ResourceCenter/ResourceCenter.module.scss
+canopy-ui-main/views/ResourceCenter/ResourceCenter.module.scss
 ```
 
 ---
@@ -345,7 +345,7 @@ Determine which tab contains the card you want to edit:
 
 Navigate to and open the appropriate file:
 ```
-datahub-ui-main/views/ResourceCenter/Components/[CardFileName].jsx
+canopy-ui-main/views/ResourceCenter/Components/[CardFileName].jsx
 ```
 
 #### Step 3: Locate the Card
@@ -398,7 +398,7 @@ Decide which tab should contain your new card:
 
 Open the corresponding file:
 ```
-datahub-ui-main/views/ResourceCenter/Components/[CardFileName].jsx
+canopy-ui-main/views/ResourceCenter/Components/[CardFileName].jsx
 ```
 
 #### Step 3: Add the Card Object
@@ -548,7 +548,7 @@ To add an entirely new tab to the Resource Center, follow these steps:
 
 #### Step 1: Create a New Card Component File
 
-1. Navigate to `datahub-ui-main/views/ResourceCenter/Components/`
+1. Navigate to `canopy-ui-main/views/ResourceCenter/Components/`
 2. Create a new file (e.g., `ForPartnersCards.jsx`)
 3. Use this template:
 
@@ -610,7 +610,7 @@ forPartnersCards.PropTypes = {
 
 #### Step 2: Update ResourceCenter.jsx
 
-Open `datahub-ui-main/views/ResourceCenter/ResourceCenter.jsx` and make the following changes:
+Open `canopy-ui-main/views/ResourceCenter/ResourceCenter.jsx` and make the following changes:
 
 **2.1: Import your new card component** (around line 14-17):
 ```javascript
@@ -764,7 +764,7 @@ const icons = {
 
 If you want a new color scheme not already available, add it to the SCSS file:
 
-Open `datahub-ui-main/views/ResourceCenter/ResourceCenter.module.scss` and add your color classes following the existing pattern.
+Open `canopy-ui-main/views/ResourceCenter/ResourceCenter.module.scss` and add your color classes following the existing pattern.
 
 ---
 

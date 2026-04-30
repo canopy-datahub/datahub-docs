@@ -503,7 +503,7 @@ Add the following two values to `aws-parameters-${CANOPY_ENV}-{USERNAME}.json`:
 - **`CertificateId`** — the UUID segment of the certificate ARN (not the full ARN). `LoadBalancer.yaml` reads this and attaches the ACM certificate to the HTTPS listener that Step 10 creates. Without it, the LoadBalancer stack deploy will fail.
 - **`PublicHostname`** — the full public HTTPS URL the users will access Canopy at (same domain the certificate was issued for, with `https://` scheme). It is consumed by two stacks later in the deployment:
   - `ECS-Keycloak.yaml` passes it as `KC_HOSTNAME`, so Keycloak advertises this URL in its OIDC discovery document and uses it for redirects.
-  - `SecretsManager.yaml` uses it to populate `HostURL`, `DATAHUB_KEYCLOAK_ISSUER_URI`, and `DATAHUB_KEYCLOAK_JWK_SET_URI` in the application secret — these must match Keycloak's advertised hostname exactly, otherwise token validation and JWKS fetches will fail.
+  - `SecretsManager.yaml` uses it to populate `HostURL`, `CANOPY_KEYCLOAK_ISSUER_URI`, and `CANOPY_KEYCLOAK_JWK_SET_URI` in the application secret — these must match Keycloak's advertised hostname exactly, otherwise token validation and JWKS fetches will fail.
 
 > **Note — pointing the domain at the ALB happens *after* Step 10.** The ALB DNS name does not exist until the LoadBalancer stack has been deployed, so the `<YOUR-SUBDOMAIN-NAME>` → `<ALB-DOMAIN-NAME>` CNAME is added as a post-deployment task at the end of Step 10.
 
@@ -792,7 +792,7 @@ Creates secrets for database credentials, API keys, and OpenSearch configuration
 
 - **host** — RDS endpoint (from Step 11)
 - **SEARCH_HOST** — OpenSearch endpoint (from Step 16)
-- **HostURL**, **DATAHUB_KEYCLOAK_ISSUER_URI**, **DATAHUB_KEYCLOAK_JWK_SET_URI** — all built from `PublicHostname` (configured in Step 9c). This must be the public HTTPS URL, not the raw ALB DNS, so that the values match the `iss` claim and JWKS endpoint Keycloak will advertise.
+- **HostURL**, **CANOPY_KEYCLOAK_ISSUER_URI**, **CANOPY_KEYCLOAK_JWK_SET_URI** — all built from `PublicHostname` (configured in Step 9c). This must be the public HTTPS URL, not the raw ALB DNS, so that the values match the `iss` claim and JWKS endpoint Keycloak will advertise.
 - **KC_DB_URL**, **KC_DB_USERNAME**, **KC_DB_PASSWORD** — pre-built JDBC URL + credentials for Keycloak's isolated database (the values configured in Step 11b and materialized by Step 12a's `06_create_keycloak_db.sql`). The ECS-Keycloak task reads these at start-up so Keycloak authenticates to its own DB, not the application DB.
 
 Also update these email values for your environment before deployment:
@@ -1621,7 +1621,7 @@ aws logs tail /aws/lambda/${CANOPY_PROJECT_NAME}-OpenSearchRefresh-${CANOPY_ENV}
 
 ```bash
 # Test connection from your machine
-psql -h $RDS_ENDPOINT -U datahub_user -d ${CANOPY_PROJECT_NAME}_${CANOPY_ENV}
+psql -h $RDS_ENDPOINT -U canopy_user -d ${CANOPY_PROJECT_NAME}_${CANOPY_ENV}
 ```
 
 #### OpenSearch Connection Issues
