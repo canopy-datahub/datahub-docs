@@ -581,7 +581,7 @@ Then set the value in `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`:
 
 #### Step 11b. Set RDS Master Password and Keycloak DB Credentials
 
-The parameter file ships with placeholder passwords. **Set them before deploying** — CloudFormation passes them to `RDS.yaml` / `SecretsManager.yaml` via `--parameter-overrides`, and `deploy_to_rds.py` in Step 12a reads them to create the corresponding roles.
+The parameter file ships with placeholder passwords. **Set them before deploying** — CloudFormation passes them to `RDS.yaml` / `SecretsManager.yaml` via `--parameter-overrides`, and `canopycli aws rds deploy-schema` in Step 12a reads them to create the corresponding roles.
 
 In `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`, replace the placeholders:
 
@@ -638,7 +638,7 @@ This step creates the database schema, tables, views, and initial data in your R
 
 #### 📘 Detailed Documentation
 
-**See:** [README_RDS_DEPLOYMENT.md](https://github.com/canopy-datahub/canopy-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
+**See:** [README_RDS_DEPLOYMENT.md](https://github.com/canopy-datahub/canopy-cli/blob/main/assets/db/README_RDS_DEPLOYMENT.md)
 
 
 #### Quick Setup (Automated)
@@ -649,20 +649,31 @@ This step creates the database schema, tables, views, and initial data in your R
 canopycli aws rds deploy-schema
 ```
 
-This wraps `canopy-development/db/postgres/db-create-scripts/deploy_to_rds.py` and passes `--project-name`, `--env`, `--region`, and `--profile` from your sourced `set-canopy-env.sh` (i.e. `${CANOPY_PROJECT_NAME}`, `${CANOPY_ENV}`, `${AWS_REGION}`, `${AWS_PROFILE}`). Pass `--dry-run` to print the underlying command without executing it.
+This invokes `DeployRdsWorker`, which discovers the bundled init scripts under `canopy-cli/assets/db/{postgres,keycloak}/init/` and runs each file in numeric order. Connection parameters (`${CANOPY_PROJECT_NAME}`, `${CANOPY_ENV}`, `${AWS_REGION}`, `${AWS_PROFILE}`) come from your sourced `set-canopy-env.sh`. Pass `--dry-run` to print the resolved configuration without executing.
 
 **What the script does:**
 1. ✅ Verifies AWS credentials and RDS connectivity
 2. ✅ Gets RDS endpoint automatically
 3. ✅ Tests database connection
-4. ✅ Runs all SQL scripts in order:
-   - `01_create_user_roles.sql` - Creates database users and roles
-   - `02_create_base_db.sql` - Creates tables, views, functions
-   - `03_populate_base_tables.sql` - Populates lookup tables
-   - `04_populate_variable_tables.sql` - Populates variable data
-   - `05_populate_test_data.sql` - Adds test data (dev/test only)
-   - `06_create_keycloak_db.sql` - Creates the isolated Keycloak database and role (reads `KeycloakDbName` / `KeycloakDbUsername` / `KeycloakDbPassword` from `${CANOPY_AWS_PARAMETER_FILE}`)
+4. ✅ Runs all SQL scripts in numeric filename order, with per-file progress + ETA. The init tree is laid out as:
+   - `010_roles.sql` — creates `canopy_admin` / `canopy_user` roles
+   - `020_schemas.sql` — creates the `canopy_history` schema
+   - `030_functions.sql` / `040_procedures.sql` / `050_types.sql`
+   - `1NN_table_<name>.sql` — one file per public table (CREATE TABLE + sequence + index + grants)
+   - `2NN_history_<name>.sql` — one file per `canopy_history` mirror
+   - `300_foreign_keys.sql`, `400_views.sql`, `500_triggers.sql`, `600_grants.sql`
+   - `7NN_data_<name>.sql` — one file per lookup-table seed
+   - `800_sequence_resets.sql`
+   - `900_seed_test_data.sql` — optional test-data seed (dev/test envs only)
+   - `keycloak/init/010_create_keycloak_db.sql` — isolated Keycloak DB + role (reads `KeycloakDbName` / `KeycloakDbUsername` / `KeycloakDbPassword` from `${CANOPY_AWS_PARAMETER_FILE}`)
 5. ✅ Provides next steps for Secrets Manager update
+
+> **Re-splitting after a fresh `pg_dump`.** When you re-dump the database (e.g. after schema changes), regenerate the per-table files with:
+> ```bash
+> canopycli db split-schema <schema-dump.sql>
+> canopycli db split-data   <data-dump.sql>
+> ```
+> Both commands write to `canopy-cli/assets/db/postgres/init/` by default.
 
 ⏳ **Wait time:** ~5-10 minutes for all scripts to complete
 
@@ -1646,7 +1657,7 @@ aws opensearch describe-domain --domain-name ${CANOPY_PROJECT_NAME}-opensearch-$
 2. **Review CloudFormation Events** - Shows why stacks failed
 3. **AWS Console** - Visual inspection of resources
 4. **Documentation** - Check service-specific READMEs:
-   - [RDS Deployment](https://github.com/canopy-datahub/canopy-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
+   - [RDS Deployment](https://github.com/canopy-datahub/canopy-cli/blob/main/assets/db/README_RDS_DEPLOYMENT.md)
    - [Lambda Deployment](https://github.com/canopy-datahub/canopy-development/blob/feature/aws/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
 
 ---

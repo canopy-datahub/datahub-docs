@@ -151,7 +151,7 @@ An enhancement is to support more flexible data dictionary ingestion, including 
 
 Several content types are stored in the database and can be managed without code changes. However, they still require direct database access to modify.
 
-For detailed information about the relevant database tables and their structure, see the [database schema creation scripts](https://github.com/canopy-datahub/canopy-development/blob/feature/aws/db/postgres/db-create-scripts/02_create_base_db.sql).
+For detailed information about the relevant database tables and their structure, see the per-table init files under [`canopy-cli/assets/db/postgres/init/`](https://github.com/canopy-datahub/canopy-cli/tree/main/assets/db/postgres/init).
 
 ### Funding Opportunities
 
@@ -312,11 +312,9 @@ INSERT INTO public.newsletter (
 
 ### Other Prepopulated Data
 
-Lookup tables (`lkup_*`) are prepopulated by the database seed scripts in `${CANOPY_HOME}/canopy-development/db/postgres/db-create-scripts/`:
-- [`03_populate_base_tables.sql`](https://github.com/canopy-datahub/canopy-development/blob/feature/aws/db/postgres/db-create-scripts/03_populate_base_tables.sql) - Base reference data used by the platform
-- [`04_populate_variable_tables.sql`](https://github.com/canopy-datahub/canopy-development/blob/feature/aws/db/postgres/db-create-scripts/04_populate_variable_tables.sql) - Variable-related reference data derived from the Global Codebook
+Lookup tables (`lkup_*`) are prepopulated by the per-table seed files in [`canopy-cli/assets/db/postgres/init/`](https://github.com/canopy-datahub/canopy-cli/tree/main/assets/db/postgres/init), specifically the `7NN_data_lkup_*.sql` files (one per lookup table) plus the `725_data_lkup_core_variable_permissible_value.sql` and `726_data_lkup_core_variable_property_value.sql` files derived from the Global Codebook.
 
-These values are not managed through the UI. To add or update lookup values, you must edit the seed scripts and reapply them in the target environment.
+These values are not managed through the UI. To add or update lookup values, you must edit the seed files and reapply them in the target environment via `canopycli aws rds deploy-schema`.
 
 **Example - Add a new entity type**
 
