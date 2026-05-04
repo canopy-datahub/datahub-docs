@@ -196,8 +196,6 @@ alias canopycli='source $CANOPY_HOME/canopy-cli/cli.sh'
 
 # test it
 canopycli
-# or
-python cli.py
 ```
 
 ### Step 3: Clone Repositories
