@@ -411,13 +411,11 @@ Bootstrap sits **before** all of them because it provisions the account-level sc
 
 🖥️ **Execute**:
 ```bash
-aws iam get-role \
-  --role-name AWSServiceRoleForAmazonOpenSearchService \
-  --profile ${AWS_PROFILE}
+canopycli aws opensearch check-service-role
 ```
 
-- If the command returns role details → the role exists, you can skip this step.
-- If the command returns `NoSuchEntity` → run the deploy below.
+- ✓ green panel → the role exists, you can skip this step.
+- ✗ red panel (`NoSuchEntity`) → run the deploy below.
 
 **Deploy:**
 
@@ -429,8 +427,9 @@ canopycli aws cloudformation deploy Bootstrap
 ✅ **Verify:**
 ```bash
 canopycli aws cloudformation status Bootstrap
+canopycli aws opensearch check-service-role   # the role should now exist
 ```
-**Expected:** `CREATE_COMPLETE`
+**Expected:** stack `CREATE_COMPLETE` and `check-service-role` returns the green ✓ panel.
 
 ---
 
@@ -810,6 +809,13 @@ Edit `aws-parameters-${CANOPY_ENV}-${USERNAME}.json` and update:
 
 > **Prerequisite:** The `AWSServiceRoleForAmazonOpenSearchService` service-linked role must exist in your AWS account before this stack can deploy. If you ran [Step 7: Deploy the Bootstrap Stack](#step-7-deploy-the-bootstrap-stack), this is already taken care of. If you skipped Step 7, go back and run it now — otherwise this deploy will fail with an `Invalid request` error on fresh accounts.
 
+🖥️ **Verify the prerequisite first** (a few seconds):
+```bash
+canopycli aws opensearch check-service-role
+```
+The command exits 0 with a green ✓ panel if the role exists, or non-zero with a red ✗ panel and the exact remediation steps if it's missing.
+
+🖥️ **Then deploy the stack:**
 ```bash
 canopycli aws cloudformation deploy OpenSearch
 ```
