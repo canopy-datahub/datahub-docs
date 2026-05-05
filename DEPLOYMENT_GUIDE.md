@@ -496,7 +496,7 @@ canopycli aws cloudformation deploy S3
 
 ✅ **Verify:** 
 ```bash
-aws s3 ls | grep ${CANOPY_PROJECT_NAME}
+canopycli aws s3 list
 ```
 **Expected:** Should list 6 buckets
 
@@ -630,10 +630,10 @@ In `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`, replace the placeholders:
 "DbMasterPassword": "REPLACEME",
 "CanopyAppDbName": "canopy_${CANOPY_ENV}",
 "KeycloakDbName": "canopy_keycloak_${CANOPY_ENV}",
-"KeycloakDbUsername": "keycloak_user",
-"KeycloakDbPassword": "REPLACEME_kc_db_password",
+"KeycloakDbUsername": "canopy_keycloak_user",
+"KeycloakDbPassword": "REPLACEME",
 "KeycloakAdminUsername": "administrator",
-"KeycloakAdminPassword": "REPLACEME_kc_admin_password"
+"KeycloakAdminPassword": "REPLACEME"
 ```
 
 - **`DbMasterPassword`** — RDS master user password, used to bootstrap the cluster and run the schema-init SQL scripts.
