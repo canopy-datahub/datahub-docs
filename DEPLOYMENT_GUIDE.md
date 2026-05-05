@@ -1513,16 +1513,15 @@ You can check deployment progress in AWS Console:
 - **ECS Console** → Clusters → `${CANOPY_PROJECT_NAME}-Services-{CANOPY_ENV}` → Services
 - Watch for "Running count" to reach "Desired count" (1/1)
 
-✅ **Verify:** Check all services are deployed
+✅ **Verify:** Check all services are deployed and healthy:
+
 ```bash
-aws ecs describe-services \
-  --cluster ${CANOPY_PROJECT_NAME}-Services-${CANOPY_ENV} \
-  --services $(aws ecs list-services --cluster ${CANOPY_PROJECT_NAME}-Services-${CANOPY_ENV} --query 'serviceArns' --output text) \
-  --query 'services[*].{Name:serviceName,Running:runningCount,Desired:desiredCount,Status:status}' \
-  --output table
+canopycli aws ecs status
 ```
 
-**Expected output:** All services should show `Running: 1, Desired: 1, Status: ACTIVE`
+This prints a single table showing every service's status, desired/running/pending counts, and current task-definition revision — with rows highlighted whenever `running != desired`. The bottom line says either `✓ All N services healthy.` (green) or `⚠ At least one service has running != desired …` (yellow), so a glance is enough.
+
+> ⚠️ **Note:** `canopycli aws ecs deploy <name>` exits 0 when ECS *accepts* the deployment, not when the new task is actually running. If a task crashes on startup (bad env var, missing image tag, IAM gap), the previous deploy keeps serving traffic and `aws ecs status` will show the service stuck with `pending=1, running=0`. Always run `aws ecs status` after a multi-service batch — sequential `canopycli aws ecs deploy` commands don't short-circuit on failure, so a single broken service in the middle of the batch is easy to miss in the scrollback.
 
 
 ## Post-Deployment Verification
@@ -1532,43 +1531,93 @@ aws ecs describe-services \
 
 Check that all stacks deployed successfully:
 
+🖥️ **Execute**:
 ```bash
-# List all ${PROJECT_NAME} stacks
-aws cloudformation list-stacks \
-  --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
-  --query "sort_by(StackSummaries[?contains(StackName, \`${CANOPY_PROJECT_NAME}\`)], &StackName)[].{Name:StackName,Status:StackStatus,Created:CreationTime}" \
-  --output table \
-  --no-cli-pager
+canopycli aws cloudformation status-all
 ```
 
-**Expected:** All stacks should show `CREATE_COMPLETE` or `UPDATE_COMPLETE`
+This pulls every CloudFormation stack matching `${CANOPY_PROJECT_NAME}-*-${CANOPY_ENV}`, prints a table with status / creation time / last-update time, and **diffs against the canonical 16-stack list canopycli expects**. Stacks in non-success states are highlighted in red or yellow; missing-but-expected stacks show up as a `MISSING` row so you don't lose them in the noise; unexpected stacks (e.g. left over from a different project in the same account) are flagged too.
 
-**Stacks you should see (15 total):**
-1. ${CANOPY_PROJECT_NAME}-CloudWatch-{CANOPY_ENV}
-2. ${CANOPY_PROJECT_NAME}-ECR-{CANOPY_ENV}
-3. ${CANOPY_PROJECT_NAME}-ECS-{CANOPY_ENV}
-4. ${CANOPY_PROJECT_NAME}-EventBridge-{CANOPY_ENV}
-5. ${CANOPY_PROJECT_NAME}-Keycloak-{CANOPY_ENV}
-6. ${CANOPY_PROJECT_NAME}-Lambda-{CANOPY_ENV}
-7. ${CANOPY_PROJECT_NAME}-LoadBalancer-{CANOPY_ENV}
-8. ${CANOPY_PROJECT_NAME}-Networking-{CANOPY_ENV}
-9. ${CANOPY_PROJECT_NAME}-OpenSearch-{CANOPY_ENV}
-10. ${CANOPY_PROJECT_NAME}-RDS-{CANOPY_ENV}
-11. ${CANOPY_PROJECT_NAME}-S3-{CANOPY_ENV}
-12. ${CANOPY_PROJECT_NAME}-SES-{CANOPY_ENV}
-13. ${CANOPY_PROJECT_NAME}-SQS-{CANOPY_ENV}
-14. ${CANOPY_PROJECT_NAME}-SecretsManager-{CANOPY_ENV}
-15. ${CANOPY_PROJECT_NAME}-TransferFamily-{CANOPY_ENV}
+```
+CloudFormation stacks for canopy (dev)
+┌────────────────┬─────────────────┬─────────────────────┬─────────────────────┐
+│ Stack          │ Status          │ Created             │ Last updated        │
+├────────────────┼─────────────────┼─────────────────────┼─────────────────────┤
+│ Bootstrap      │ CREATE_COMPLETE │ 2026-04-30T18:21:03 │ —                   │
+│ CloudWatch     │ CREATE_COMPLETE │ 2026-04-30T19:14:55 │ —                   │
+│ ECR            │ CREATE_COMPLETE │ 2026-04-30T19:30:11 │ 2026-05-02T11:08:42 │
+│ ECS            │ CREATE_COMPLETE │ 2026-04-30T20:55:09 │ —                   │
+│ ECS-Keycloak   │ CREATE_COMPLETE │ 2026-04-30T21:42:18 │ —                   │
+│ EventBridge    │ CREATE_COMPLETE │ 2026-04-30T22:01:33 │ —                   │
+│ Lambda         │ CREATE_COMPLETE │ 2026-04-30T20:22:44 │ —                   │
+│ LoadBalancer   │ CREATE_COMPLETE │ 2026-04-30T18:55:41 │ —                   │
+│ Networking     │ CREATE_COMPLETE │ 2026-04-30T18:40:27 │ —                   │
+│ OpenSearch     │ CREATE_COMPLETE │ 2026-04-30T20:05:18 │ —                   │
+│ RDS            │ CREATE_COMPLETE │ 2026-04-30T19:01:52 │ —                   │
+│ S3             │ CREATE_COMPLETE │ 2026-04-30T18:48:11 │ —                   │
+│ SES            │ CREATE_COMPLETE │ 2026-04-30T21:55:36 │ —                   │
+│ SQS            │ CREATE_COMPLETE │ 2026-04-30T19:25:48 │ —                   │
+│ SecretsManager │ CREATE_COMPLETE │ 2026-04-30T20:18:21 │ —                   │
+│ TransferFamily │ CREATE_COMPLETE │ 2026-04-30T22:11:09 │ —                   │
+└────────────────┴─────────────────┴─────────────────────┴─────────────────────┘
+✓ All 16 stacks healthy (matches the 16 expected by canopycli).
+```
+
+✅ **Verify:** look for the green `✓ All 16 stacks healthy` line.
+
+If you see something like `⚠ Issues: 1 missing (canopy-OpenSearch-dev); 1 non-success status` instead, drill into the offending stack with:
+
+```bash
+canopycli aws cloudformation status <Name>
+```
+
+(e.g. `canopycli aws cloudformation status OpenSearch`). That shows the full status reason — usually a CFN parameter problem, a stuck `ROLLBACK_COMPLETE` that needs `aws cloudformation delete-stack` first, or a quota / IAM issue.
+
+**Stacks you should see (16 total):**
+1. ${CANOPY_PROJECT_NAME}-Bootstrap-${CANOPY_ENV}
+2. ${CANOPY_PROJECT_NAME}-CloudWatch-${CANOPY_ENV}
+3. ${CANOPY_PROJECT_NAME}-ECR-${CANOPY_ENV}
+4. ${CANOPY_PROJECT_NAME}-ECS-${CANOPY_ENV}
+5. ${CANOPY_PROJECT_NAME}-ECS-Keycloak-${CANOPY_ENV}
+6. ${CANOPY_PROJECT_NAME}-EventBridge-${CANOPY_ENV}
+7. ${CANOPY_PROJECT_NAME}-Lambda-${CANOPY_ENV}
+8. ${CANOPY_PROJECT_NAME}-LoadBalancer-${CANOPY_ENV}
+9. ${CANOPY_PROJECT_NAME}-Networking-${CANOPY_ENV}
+10. ${CANOPY_PROJECT_NAME}-OpenSearch-${CANOPY_ENV}
+11. ${CANOPY_PROJECT_NAME}-RDS-${CANOPY_ENV}
+12. ${CANOPY_PROJECT_NAME}-S3-${CANOPY_ENV}
+13. ${CANOPY_PROJECT_NAME}-SES-${CANOPY_ENV}
+14. ${CANOPY_PROJECT_NAME}-SQS-${CANOPY_ENV}
+15. ${CANOPY_PROJECT_NAME}-SecretsManager-${CANOPY_ENV}
+16. ${CANOPY_PROJECT_NAME}-TransferFamily-${CANOPY_ENV}
 
 **Services you should see running (8 total):**
+
+🖥️ **Execute**:
 ```bash
-# Check ECS services
-aws ecs list-services \
-  --cluster ${CANOPY_PROJECT_NAME}-Services-${CANOPY_ENV} \
-  --query 'sort(serviceArns)' \
-  --output table \
-  --no-cli-pager
+canopycli aws ecs status
 ```
+
+This shows every service in the cluster with its status, desired/running/pending counts, and current task-definition revision. Rows where `running != desired` are highlighted (a service that's still scaling up or stuck), and the bottom line tells you whether everything is healthy at a glance:
+
+```
+ECS services in 'canopy-Services-dev'
+┌──────────────────────────┬────────┬─────────┬─────────┬─────────┬───────────────┐
+│ Service                  │ Status │ Desired │ Running │ Pending │ Task def      │
+├──────────────────────────┼────────┼─────────┼─────────┼─────────┼───────────────┤
+│ canopy-DownloadService   │ ACTIVE │       1 │       1 │       0 │ canopy-Down…  │
+│ canopy-EntityService     │ ACTIVE │       1 │       1 │       0 │ canopy-Enti…  │
+│ canopy-Keycloak          │ ACTIVE │       1 │       1 │       0 │ canopy-Keyc…  │
+│ canopy-ReportService     │ ACTIVE │       1 │       1 │       0 │ canopy-Repo…  │
+│ canopy-Search            │ ACTIVE │       1 │       1 │       0 │ canopy-Sear…  │
+│ canopy-SubmissionService │ ACTIVE │       1 │       1 │       0 │ canopy-Subm…  │
+│ canopy-UI                │ ACTIVE │       1 │       1 │       0 │ canopy-UI:1   │
+│ canopy-UserService       │ ACTIVE │       1 │       1 │       0 │ canopy-User…  │
+└──────────────────────────┴────────┴─────────┴─────────┴─────────┴───────────────┘
+✓ All 8 services healthy.
+```
+
+✅ **Verify:** look for the green `✓ All 8 services healthy.` line. If you see `⚠ At least one service has running != desired …` instead, jump into the AWS Console (ECS → Cluster → the affected service → **Tasks** tab → click any **STOPPED** task to see why it died — usually an env-var, image-tag, or IAM-permission issue).
 
 Expected services:
 1. ${CANOPY_PROJECT_NAME}-DownloadService
@@ -1804,17 +1853,17 @@ echo "Cleanup complete!"
 ### Step 3: Verify Cleanup
 
 ```bash
-# Check for remaining stacks
-aws cloudformation list-stacks \
-  --query "StackSummaries[?contains(StackName, \`${CANOPY_PROJECT_NAME}\`) && StackStatus != \`DELETE_COMPLETE\`].{Name:StackName,Status:StackStatus}" \
-  --output table
+# Check for remaining stacks (every stack should appear as MISSING in the diff)
+canopycli aws cloudformation status-all
 
 # Check for remaining S3 buckets
-aws s3 ls | grep ${CANOPY_PROJECT_NAME}
+canopycli aws s3 list
 
 # Check for remaining ECR repositories
-aws ecr describe-repositories --query "repositories[?contains(repositoryName, \`${CANOPY_PROJECT_NAME}\`)].repositoryName"
+canopycli aws ecr list
 ```
+
+A clean teardown shows every expected stack as `MISSING` in the table (red row) and the bottom line: `⚠ Issues: 16 missing (canopy-Bootstrap-dev, canopy-CloudWatch-dev, …)`. That's the success state for cleanup. If anything else is listed (status other than MISSING, or unexpected rows), it's still up and needs another pass.
 
 ### Step 4: ACM Certificate (Manual)
 
