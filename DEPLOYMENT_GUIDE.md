@@ -86,55 +86,68 @@ choco install awscli docker-desktop git python311 openjdk17 maven nodejs postgre
 
 Use this checklist to track your progress. Each step links to detailed instructions below.
 
-### Pre-Deployment Setup (20 min)
-- [ ] **Step 0:** [Clone repositories](#step-0-clone-repositories) (5 min)
-- [ ] **Step 1:** [Install and Configure AWS CLI](#step-1-configure-aws-cli) (10 min)
-- [ ] **Step 2:** [Set environment variables](#step-2-set-environment-variables) (5 min)
+### Pre-Deployment Setup (22 min)
+- [ ] **Step 1:** [Create Canopy Home](#step-1-create-canopy-home) (1 min)
+- [ ] **Step 2:** [Set Up Canopy CLI](#step-2-set-up-canopy-cli) (5 min)
+- [ ] **Step 3:** [Clone Repositories](#step-3-clone-repositories) (5 min)
+- [ ] **Step 4:** [Install and Configure AWS CLI](#step-4-install-and-configure-aws-cli) (10 min)
+  - [ ] **Step 4a:** [Install AWS CLI](#step-4a-install-aws-cli)
+  - [ ] **Step 4b:** [Set up AWS Credentials](#step-4b-set-up-aws-credentials-for-deployment)
+  - [ ] **Step 4c:** [Grant IAM Permissions](#step-4c-grant-iam-permissions)
+- [ ] **Step 5:** [Set Environment Variables](#step-5-set-environment-variables) (5 min)
+- [ ] **Step 6:** [Run Preflight Check](#step-6-run-preflight-check) (2 min)
 
 ### Core AWS Infrastructure (~3 hours)
-- [ ] **Step 3:** [Deploy Networking Stack](#step-3-deploy-networking-stack) (5 min)
-- [ ] **Step 4:** [Deploy S3 Stack](#step-4-deploy-s3-stack) (5 min)
-- [ ] **Step 5:** [Deploy LoadBalancer Stack](#step-5-deploy-loadbalancer-stack) (5 min)
-- [ ] **Step 6:** [Deploy RDS Stack](#step-6-deploy-rds-stack) (15 min)
-  - [ ] **Step 6a:** [Configure RDS Security Group](#step-6a-configure-rds-security-group)
-  - [ ] **Step 6b:** [Deploy RDS Stack](#step-6b-deploy-rds-stack)
-- [ ] **Step 7:** [Database Configuration](#step-7-database-configuration)
-  - [ ] **Step 7a:** [Setup Database Schema](#step-7a-setup-database-schema) (30 min)
-  - [ ] **Step 7b:** [Configure pg_cron Scheduler](#step-7b-configure-pg_cron-scheduler-optional) (Optional, 10 min)
-- [ ] **Step 8:** [Deploy Route53 Stack](#step-8-deploy-route53-stack) (Optional) (5 min)
-- [ ] **Step 9:** [Deploy CloudWatch Stack](#step-9-deploy-cloudwatch-stack) (5 min)
-- [ ] **Step 10:** [Deploy SQS Stack](#step-10-deploy-sqs-stack) (5 min)
-- [ ] **Step 11:** [Deploy ECR Stack](#step-11-deploy-ecr-stack) (5 min)
-- [ ] **Step 12:** [Deploy OpenSearch Stack](#step-12-deploy-opensearch-stack) (20 min)
-  - [ ] **Step 12a:** [Configure OpenSearch Credentials](#step-12a-configure-opensearch-credentials)
-  - [ ] **Step 12b:** [Deploy OpenSearch Stack](#step-12b-deploy-opensearch-stack)
-- [ ] **Step 13:** [Deploy SecretsManager Stack](#step-13-deploy-secretsmanager-stack) (5 min)
-- [ ] **Step 14:** [OpenSearch Reindex Lambda](#step-14-opensearch-reindex-lambda) 
-  - [ ] **Step 14a:** [Create Lambda Layer](#step-14a-create-lambda-layer) (5 min)
-  - [ ] **Step 14b:** [Upload OpenSearch Reindex Lambda Code](#step-14b-upload-opensearch-reindex-lambda-code) (5 min)
-- [ ] **Step 15:** [Upload Email Service Lambda Code](#step-15-upload-email-service-lambda-code) (5 min)
-- [ ] **Step 16:** [Deploy Lambda Stack](#step-16-deploy-lambda-stack) (10 min)
-- [ ] **Step 17:** [Deploy ECS Stack](#step-17-deploy-ecs-stack) (20 min)
-- [ ] **Step 17.1:** [Deploy Keycloak](#step-171-deploy-keycloak) (30 min)
-  - [ ] **Step 17.1a:** [Build and Push Keycloak Image](#step-171a-build-and-push-keycloak-image) (5 min)
-  - [ ] **Step 17.1b:** [Deploy Keycloak ECS Stack](#step-171b-deploy-keycloak-ecs-stack) (5 min)
-  - [ ] **Step 17.1c:** [Configure Keycloak Database SSL](#step-171c-configure-keycloak-database-ssl) (5 min)
-  - [ ] **Step 17.1d:** [Restart Keycloak Service](#step-171d-restart-keycloak-service) (5 min)
-  - [ ] **Step 17.1e:** [Initial Keycloak Configuration](#step-171e-initial-keycloak-configuration) (10 min)
-- [ ] **Step 18:** [Deploy SES Stack](#step-18-deploy-ses-stack) (20 min)
-  - [ ] **Step 18a:** [Deploy SES Stack](#step-18a-deploy-ses-stack) (10 min)
-  - [ ] **Step 18b:** [Configure SES Email Verification](#step-18b-configure-ses-email-verification)  (10 min)
-- [ ] **Step 19:** [Deploy EventBridge Stack](#step-19-deploy-eventbridge-stack) (5 min)
-- [ ] **Step 20:** [Deploy TransferFamily Stack](#step-20-deploy-transferfamily-stack-sftp-server) (10 min)
-  - [ ] **Step 20a:** [Allocate Elastic IP](#step-20a-optional-allocate-elastic-ip) (Optional)
-  - [ ] **Step 20b:** [Deploy TransferFamily Stack](#step-20b-deploy-transferfamily-stack)
-  - [ ] **Step 20c:** [Create SFTP User Account](#step-20c-create-an-sftp-user-account) (repeat per submitter)
-  - [ ] **Step 20d:** [Register SFTP User in Database](#step-20d-register-the-sftp-user-in-the-database--required) (repeat per submitter)
-- [ ] **Step 21:** [Build and Deploy Services](#step-21-build-and-deploy-services)  (50 min)
+- [ ] **Step 7:** [Deploy the Bootstrap Stack](#step-7-deploy-the-bootstrap-stack) (2 min)
+- [ ] **Step 8:** [Deploy Networking Stack](#step-8-deploy-networking-stack) (5 min)
+- [ ] **Step 9:** [Deploy S3 Stack](#step-9-deploy-s3-stack) (5 min)
+  - [ ] **Step 9a:** [Configure DeploymentId](#step-9a-configure-deploymentid-for-s3-buckets)
+  - [ ] **Step 9b:** [Deploy into AWS](#step-9b-deploy-into-aws)
+- [ ] **Step 10:** [Request SSL/TLS Certificate (ACM)](#step-10-request-ssltls-certificate-acm) (10 min)
+  - [ ] **Step 10a:** [Request a Certificate in ACM](#step-10a-request-a-certificate-in-acm)
+  - [ ] **Step 10b:** [Add the ACM Validation CNAME to DNS](#step-10b-add-the-acm-validation-cname-to-dns)
+  - [ ] **Step 10c:** [Configure the CertificateId Parameter](#step-10c-configure-the-certificateid-parameter)
+- [ ] **Step 11:** [Deploy LoadBalancer Stack](#step-11-deploy-loadbalancer-stack) (5 min)
+- [ ] **Step 12:** [Deploy RDS Stack](#step-12-deploy-rds-stack) (15 min)
+  - [ ] **Step 12a:** [Configure RDS Security Group](#step-12a-configure-rds-security-group)
+  - [ ] **Step 12b:** [Set RDS Master Password](#step-12b-set-rds-master-password)
+  - [ ] **Step 12c:** [Deploy RDS Stack](#step-12c-deploy-rds-stack)
+- [ ] **Step 13:** [Database Configuration](#step-13-database-configuration)
+  - [ ] **Step 13a:** [Setup Database Schema](#step-13a-setup-database-schema) (30 min)
+  - [ ] **Step 13b:** [Configure pg_cron Scheduler](#step-13b-configure-pg_cron-scheduler-optional) (Optional, 10 min)
+- [ ] **Step 14:** [Deploy CloudWatch Stack](#step-14-deploy-cloudwatch-stack) (5 min)
+- [ ] **Step 15:** [Deploy SQS Stack](#step-15-deploy-sqs-stack) (5 min)
+- [ ] **Step 16:** [Deploy ECR Stack](#step-16-deploy-ecr-stack) (5 min)
+- [ ] **Step 17:** [Deploy OpenSearch Stack](#step-17-deploy-opensearch-stack) (20 min)
+  - [ ] **Step 17a:** [Configure OpenSearch Credentials](#step-17a-configure-opensearch-credentials)
+  - [ ] **Step 17b:** [Deploy OpenSearch Stack](#step-17b-deploy-opensearch-stack)
+- [ ] **Step 18:** [Deploy SecretsManager Stack](#step-18-deploy-secretsmanager-stack) (5 min)
+- [ ] **Step 19:** [OpenSearch Reindex Lambda](#step-19-opensearch-reindex-lambda)
+  - [ ] **Step 19a:** [Create Lambda Layer](#step-19a-create-lambda-layer) (5 min)
+  - [ ] **Step 19b:** [Upload OpenSearch Reindex Lambda Code](#step-19b-upload-opensearch-reindex-lambda-code) (5 min)
+- [ ] **Step 20:** [Upload Email Service Lambda Code](#step-20-upload-email-service-lambda-code) (5 min)
+- [ ] **Step 21:** [Deploy Lambda Stack](#step-21-deploy-lambda-stack) (10 min)
+- [ ] **Step 22:** [Deploy ECS Stack](#step-22-deploy-ecs-stack) (20 min)
+- [ ] **Step 23:** [Deploy Keycloak](#step-23-deploy-keycloak) (30 min)
+  - [ ] **Step 23a:** [Build and Push Keycloak Image](#step-23a-build-and-push-keycloak-image) (5 min)
+  - [ ] **Step 23b:** [Deploy Keycloak ECS Stack](#step-23b-deploy-keycloak-ecs-stack) (5 min)
+  - [ ] **Step 23c:** [Verify the Auto-Imported Realm](#step-23c-verify-the-auto-imported-realm) (2 min)
+- [ ] **Step 24:** [Deploy SES Stack](#step-24-deploy-ses-stack) (20 min)
+  - [ ] **Step 24a:** [Deploy SES Stack](#step-24a-deploy-ses-stack) (10 min)
+  - [ ] **Step 24b:** [Configure SES Email Verification](#step-24b-configure-ses-email-verification) (10 min)
+- [ ] **Step 25:** [Deploy EventBridge Stack](#step-25-deploy-eventbridge-stack) (5 min)
+- [ ] **Step 26:** [Deploy TransferFamily Stack](#step-26-deploy-transferfamily-stack-sftp-server) (10 min)
+  - [ ] **Step 26a:** [Allocate Elastic IP](#step-26a-optional-allocate-elastic-ip) (Optional)
+  - [ ] **Step 26b:** [Deploy TransferFamily Stack](#step-26b-deploy-transferfamily-stack)
+  - [ ] **Step 26c:** [Create SFTP User Account](#step-26c-create-an-sftp-user-account) (repeat per submitter)
+  - [ ] **Step 26d:** [Register SFTP User in Database](#step-26d-register-the-sftp-user-in-the-database--required) (repeat per submitter)
+- [ ] **Step 27:** [Build and Deploy Services](#step-27-build-and-deploy-services) (50 min)
+  - [ ] **Step 27a:** [Configure UI Environment Variables](#step-27a-configure-ui-environment-variables)
+  - [ ] **Step 27b:** [Deploy All Services](#step-27b-deploy-all-services)
 
 ### Post-Deployment (10 min)
-- [ ] **Step 22:** [Verify deployment](#step-22-verify-deployment)
-- [ ] **Step 23:** [Test application](#step-23-test-application)
+- [ ] **Step 28:** [Verify Deployment](#step-28-verify-deployment)
+- [ ] **Step 29:** [Test Application](#step-29-test-application)
 
 ---
 
@@ -142,43 +155,75 @@ Use this checklist to track your progress. Each step links to detailed instructi
 
 ## Pre-Deployment Setup
 
-### Step 0: Clone Repositories
-**Time:** 5 minutes
+### Step 1: Create Canopy Home
+**Time:** 1 minute
 
-Clone all necessary repositories from the BMIR DataHub GitHub organization:
+To work with the Canopy infrastructure, we strongly recommend that you create a dedicated directory for all the repositories you will be working with.
+This guide will assume that you are following this best practice.
 
+🖥️ **Execute**:
 ```bash
 # Create workspace directory
-mkdir -p ~/dataHub
-cd ~/dataHub
+mkdir ~/CANOPY
+```
 
-# Clone all repositories
-git clone https://github.com/canopy-datahub/datahub-cloud-replication.git
-git clone https://github.com/canopy-datahub/datahub-deployment-scripts.git
-git clone https://github.com/canopy-datahub/datahub-development.git
-git clone https://github.com/canopy-datahub/datahub-service-download.git
-git clone https://github.com/canopy-datahub/datahub-service-email.git
-git clone https://github.com/canopy-datahub/datahub-service-entity.git
-git clone https://github.com/canopy-datahub/datahub-service-report.git
-git clone https://github.com/canopy-datahub/datahub-service-search.git
-git clone https://github.com/canopy-datahub/datahub-service-submission.git
-git clone https://github.com/canopy-datahub/datahub-service-user.git
-git clone https://github.com/canopy-datahub/datahub-ui-main.git
+### Step 2: Set Up Canopy CLI
+**Time:** 5 minutes
+
+Canopy CLI is a command-line tool that you can use to interact with the Canopy infrastructure.
+It hides the complexity of several commands during this setup and allows you to focus on the actual deployment.
+We will use it extensively throughout this guide.
+
+You can follow the guide directly from the [Canopy CLI repository](https://github.com/canopy-datahub/canopy-cli), or you can install it using the following commands:
+
+🖥️ **Execute**:
+```bash
+export CANOPY_HOME=~/CANOPY
+
+cd ${CANOPY_HOME}
+git clone https://github.com/canopy-datahub/canopy-cli
+
+cd canopy-cli
+# checkout the develop branch for the latest features
+git checkout develop
+
+# create venv
+python -m venv ./.venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# create an alias
+alias canopycli='source $CANOPY_HOME/canopy-cli/cli.sh'
+
+# test it
+canopycli
+```
+
+### Step 3: Clone Repositories
+**Time:** 5 minutes
+
+Clone all necessary repositories from the Canopy GitHub organization:
+
+🖥️ **Execute**:
+```bash
+canopycli git clone all
 
 # Verify all repositories are cloned
+cd ${CANOPY_HOME}
 ls -la
 ```
 
-✅ **Verify:** You should see 12 directories in `~/dataHub/`
+✅ **Verify:** You should see 14 directories in `~/CANOPY`
 
 ---
 
-### Step 1: Install and Configure AWS CLI
+### Step 4: Install and Configure AWS CLI
 **Time:** 10 minutes
 
 You need to install the AWS CLI and have an IAM user with the required permissions set up so you can run AWS commands from your machine.
 
-#### Step 1a: Install AWS CLI
+#### Step 4a: Install AWS CLI
+🖥️ **Execute**:
 ```bash
 # For MacOS:
 brew install awscli
@@ -186,285 +231,379 @@ brew install awscli
 aws --version
 ```
 
-#### Step 1b: Set up AWS credentials for deployment:
+#### Step 4b: Set up AWS credentials for deployment:
 
 **Get AWS credentials:**
 1. Log into AWS Console
 2. If you don't have an IAM user yet, go to **IAM → Users → Create user**, enter a username (e.g. `canopy-dev`), and click **Next**. On the permissions screen, select **Attach policies directly**, search for **AdministratorAccess**, select it, and click **Next**. Review the summary, then click **Create user**.
 3. Go to IAM → Users → Select your user
-4. Security Credentials tab → Create Access Key
+4. Security Credentials tab → Create Access Key. On the **Access key best practices & alternatives** page choose **Command Line Interface (CLI)**.
 5. Download and save the credentials securely
 6. Replace `YOUR_ACCESS_KEY_ID` and `YOUR_SECRET_ACCESS_KEY` below
 
-⚠️ **Important:** In the following guide `datahub-rep` is the AWS profile name. Feel free to choose another name, but use it consistently throughout the guide. 
+⚠️ **Important:** In the following guide `canopy-profile` is the AWS profile name. Feel free to choose another name but use it consistently throughout the guide.
 
+🖥️ **Execute**:
 ```bash
 # Create AWS credentials file
 mkdir -p ~/.aws
 
 # Add your credentials
 cat <<EOL >> ~/.aws/credentials
-[datahub-rep]
+[canopy-profile]
 aws_access_key_id=YOUR_ACCESS_KEY_ID
 aws_secret_access_key=YOUR_SECRET_ACCESS_KEY
 EOL
 
 # Set default region
 cat <<EOL >> ~/.aws/config
-[profile datahub-rep]
+[profile canopy-profile]
 region=us-east-1
 output=json
 EOL
 ```
-*IMPORTANT: Unset any existing AWS credentials from the environment*
+**IMPORTANT: Unset any existing AWS credentials from the environment**
+
+🖥️ **Execute**:
 ```bash
 unset AWS_ACCESS_KEY_ID
 unset AWS_SECRET_ACCESS_KEY
 unset AWS_SESSION_TOKEN
 
 # Now set the profile and region
-export AWS_PROFILE=datahub-rep
+export AWS_PROFILE=canopy-profile
 export AWS_REGION=us-east-1
 ```
 
 ✅ **Verify:** Test AWS connectivity
 ```bash
-aws sts get-caller-identity
+aws sts get-caller-identity --no-cli-pager
 ```
 
 **Expected output:** Should show your AWS account ID, user ARN, and user ID.
 *Please make sure you are using the correst aws profile*
 
-#### Step 1c: Grant IAM Permissions
+#### Step 4c: Grant IAM Permissions
 
-The IAM user performing the deployment must have permissions for the following AWS services: CloudFormation, VPC, EC2, S3, Elastic Load Balancing (ALB), RDS, Route53, CloudWatch, SQS, ECR, OpenSearch Service, Secrets Manager, ECS, SES, Lambda, EventBridge, and IAM.
+The IAM user performing the deployment must have permissions for the following AWS services: CloudFormation, VPC, EC2, S3, Elastic Load Balancing (ALB), RDS, CloudWatch, SQS, ECR, OpenSearch Service, Secrets Manager, ECS, SES, Lambda, EventBridge, and IAM.
 
-If you followed Step 1b and attached **AdministratorAccess** during user creation, you can skip the command below. Otherwise, run it now to grant the required permissions:
+If you followed Step 4b and attached **AdministratorAccess** during user creation, you can skip the command below. Otherwise, run it now to grant the required permissions:
 
+🖥️ **Execute**:
 ```bash
 # Change to your own user name below
 aws iam attach-user-policy \
-  --user-name datahub-dev \
+  --user-name canopy-dev \
   --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
 ```
 ---
 
-### Step 2: Set Environment Variables
+### Step 5: Set Environment Variables
 **Time:** 5 minutes
 
 ⚠️ **SHORTCUT:**
 This guide will introduce several environment variables that will be used throughout the deployment.
-We strongly suggest that you set all of these up at this stage by creating a file called `set-canopy-env.sh` or similar, with the following content:
+You can bootstrap them by running the following command:
 
+⚠️ **IMPORTANT:**
+Change `dev` to `test` or `prod` to deploy to a different environment.
+During this guide, `${CANOPY_ENV}` is just a string value, but it is recommended to use lowercase only. It is used to suffix the AWS resource names.
+
+🖥️ **Execute**:
 ```bash
-#!/bin/bash
-
-unset AWS_ACCESS_KEY_ID
-unset AWS_SECRET_ACCESS_KEY
-unset AWS_SESSION_TOKEN
-
-export AWS_PROFILE=datahub-rep
-export AWS_REGION=us-east-1
-
 export CANOPY_ENV=dev
-export CANOPY_HOME=~/DATAHUB
-export CANOPY_AWS_PARAMETER_FILE=${CANOPY_HOME}/datahub-cloud-replication/parameters-${CANOPY_ENV}.json
-export CANOPY_PROJECT_NAME=$(cat ${CANOPY_AWS_PARAMETER_FILE} | grep -o '"ProjectName": "[^"]*"' | cut -d'"' -f4)
-export CANOPY_UNIQUE_ID=$(cat ${CANOPY_AWS_PARAMETER_FILE} | grep -o '"DataHubUniqueId": "[^"]*"' | cut -d'"' -f4)
-
-echo ""
-echo "Environment     : $CANOPY_ENV"
-echo "Project Home    : $CANOPY_HOME"
-echo "Project Name    : $CANOPY_PROJECT_NAME"
-echo "Canopy Unique Id: $CANOPY_UNIQUE_ID"
-echo "AWS Profile     : $AWS_PROFILE"
-echo "AWS Region      : $AWS_REGION"
-echo ""
+canopycli init cli
 ```
 
-⚠️ **Important:** Execute this file to set all the environment variables, any time when you make a significant change to the `params-${CANOPY_ENV}.json` file. 
-Use: 
+✅ **Verify:** As a result, these 3 files will show up in your Canopy home directory:
 ```bash
-source set-canopy-env.sh
+aws-parameters-${CANOPY_ENV}-${USERNAME}.json
+canopy-profile-native-develop.sh
+set-canopy-env.sh
+```
+
+Feel free to rename `aws-parameters-${CANOPY_ENV}-${USERNAME}.json` based on your needs.
+BUT make sure to update `set-canopy-env.sh` as well, because it references the json file.
+
+⚠️ **IMPORTANT:** Reload `set-canopy-env.sh` to set all the environment variables, any time when you make a significant change to the `aws-parameters-${CANOPY_ENV}--${USERNAME}.json` file.
+
+🖥️ **Use**:
+```bash
+source ${CANOPY_HOME}/set-canopy-env.sh
 ```
 ---
 
-⚠️ **TO UPDATE:**
-The current guide still sets the above environment variables manually, one by one during the first 4 steps.
-These unnecessary blocks will be soon removed from the guide.
+💡 **Tip:** Add these to your `~/.bashrc` or `~/.zshrc` to persist across sessions.
+
 ---
 
-Set environment variables that will be used throughout the deployment:
+### Step 6: Run Preflight Check
+**Time:** 2 minutes
 
+Before any AWS resource is created, run a preflight check. This is a fast, read-only sanity pass that catches the two most common reinstall blockers **before** they make CloudFormation deploys fail half-way through:
+
+1. **Naming sanity** — every resource the install would create has its physical name resolved against your parameter file and validated against the AWS service's length-and-charset rules. The tightest of these (OpenSearch domain at 28 chars, ALB / Target Group names at 32 chars) silently dictate how long your `ProjectName` can be.
+2. **Existence probe** — each named resource is queried in the target account/region. Anything that already exists (a stale S3 bucket from a previous tear-down, a `ROLLBACK_COMPLETE` stack from a half-failed deploy, a Secrets Manager secret in pending-deletion, …) is reported up-front with the exact remedial action.
+
+🖥️ **Execute**:
 ```bash
-# Set environment (dev, test, or prod)
-export CANOPY_ENV=dev
-
-# Set home folder where all the repos were checked out
-export CANOPY_HOME=~/CANOPY
-
-# Set parameter files path
-export CANOPY_AWS_PARAMETER_FILE=${CANOPY_HOME}/datahub-cloud-replication/parameters-${CANOPY_ENV}.json
-
-# Open parameters file for your environment
-nano ${CANOPY_AWS_PARAMETER_FILE} 
-
-# edit your `ProjectName` parameter
-# important: use lowercase only, as this value will also be used in s3 bucket names, which only allow lowercase
-
-# save it in the environment variable
-export CANOPY_PROJECT_NAME=$(cat ${CANOPY_AWS_PARAMETER_FILE} | grep -o '"ProjectName": "[^"]*"' | cut -d'"' -f4)
-
-# Set AWS profile and region
-export AWS_PROFILE=datahub-rep
-export AWS_REGION=us-east-1
-
-# Verify settings
-echo "Environment:  $CANOPY_ENV"
-echo "Project Home: $CANOPY_HOME"
-echo "Project Name: $CANOPY_PROJECT_NAME"
-echo "AWS Profile:  $AWS_PROFILE"
-echo "AWS Region:   $AWS_REGION"
+canopycli aws preflight
 ```
-##### 💡 **Tip:** Add these to your `~/.bashrc` or `~/.zshrc` to persist across sessions.
+
+The command runs in two phases. First it walks every CloudFormation module the install would push (Bootstrap, Networking, S3, RDS, …), resolves each named resource via `!Sub` / `!Ref`, and validates the names. Then it probes AWS, showing one line per resource as it goes:
+
+```
+Probing AWS for 71 resources… (one describe-* call per resource; ~0.5–2s each)
+  [ 1/71] CloudFormation::Stack    canopy-Bootstrap-dev          ✓ absent   (0.6s)
+  [ 2/71] CloudFormation::Stack    canopy-Networking-dev         ✓ absent   (0.5s)
+  …
+  [15/71] S3::Bucket               canopy-upload-portal-0001-dev ✗ EXISTS — in this account (0.4s)
+  …
+Probed 71 resources in 48.3s.
+```
+
+A grouped table is printed at the end, plus a summary panel that includes a **`ProjectName` headroom** value: how many more characters your project name could grow before busting the tightest length rule. Useful when planning a rename.
+
+✅ **Verify:** Look for `Preflight clean.` at the bottom of the output. If you see `Preflight failed.` instead, fix every red row before continuing:
+
+| Symptom | Action |
+|---|---|
+| `✗ EXISTS` on a stack stuck in `ROLLBACK_COMPLETE` | `aws cloudformation delete-stack --stack-name <name>`, wait for it to drain |
+| `✗ EXISTS — PENDING DELETION until …` on a Secrets Manager secret | `aws secretsmanager restore-secret --secret-id <name>` (or wait out the window) |
+| `✗ EXISTS — name globally taken (different account)` on an S3 bucket | Change the bucket's name component (e.g. `DeploymentId`, `ProjectName`) and re-run |
+| `✗ too long (32 > 28)` on an OpenSearch domain | Shorten `ProjectName`, then re-run `source ${CANOPY_HOME}/set-canopy-env.sh` |
+| `⚠ check failed` (yellow) | Usually an IAM permission gap on `describe-*` — investigate but it doesn't block deploy |
+
+💡 **Tip:** `canopycli aws preflight --skip-probe` runs only the name-validation phase (no AWS calls). Useful when planning a project name on a flight or before AWS credentials are configured.
+
+> Re-run preflight any time you change the parameter file, the project name, or the environment, or after tearing down a previous install. It's the cheapest way to confirm the next `canopycli aws cloudformation deploy` will not collide with leftovers.
+
 ---
 
 ## Core AWS Infrastructure
-### Navigate to CloudFormation repository
+
+### Step 7: Deploy the Bootstrap Stack
+**Time:** 2 minutes
+
+Before deploying any service-specific stacks, you need to deploy a one-time **Bootstrap** stack at the AWS account level.
+
+**What the Bootstrap stack does:**
+
+`Bootstrap.yaml` creates shared prerequisites that only need to exist **once per AWS account**, not once per project or environment. Currently, it provisions:
+
+- **`AWSServiceRoleForAmazonOpenSearchService`** — the IAM service-linked role Amazon OpenSearch Service needs in order to manage VPC network interfaces on your behalf. Without this role, the OpenSearch stack (Step 17) will fail with an `Invalid request` error on fresh AWS accounts.
+
+**Why a separate stack:**
+
+- The service-linked role is **account-wide** (shared by every IAM user and every project in the account), so it does not belong inside a per-environment stack.
+
+**How it fits the overall deployment:**
+
+The rest of the deployment is split into per-environment CloudFormation stacks under `canopy-cloud-replication/modules/` (`Networking.yaml`, `S3.yaml`, `LoadBalancer.yaml`, `RDS.yaml`, `OpenSearch.yaml`, `SecretsManager.yaml`, `Lambda.yaml`, `ECS.yaml`, `ECS-Keycloak.yaml`, `SES.yaml`, `EventBridge.yaml`, `TransferFamily.yaml`, …). Each of those stacks follows the same pattern:
+
+- Named `${CANOPY_PROJECT_NAME}-<Module>-${CANOPY_ENV}` and tagged with `projectname` + `environment`.
+- Configured from the shared parameter file `${CANOPY_AWS_PARAMETER_FILE}` generated by `canopycli init cli`.
+- Deployed with `aws cloudformation deploy`, which is idempotent — re-running updates the stack in place via a change set.
+
+Bootstrap sits **before** all of them because it provisions the account-level scaffolding they rely on.
+
+**Skip condition:** If the `AWSServiceRoleForAmazonOpenSearchService` role already exists in your AWS account (e.g. someone else deployed OpenSearch in this account before), you can skip the deploy below — Bootstrap will simply be a no-op. To check:
+
+🖥️ **Execute**:
 ```bash
-cd ${CANOPY_HOME}/datahub-cloud-replication
+canopycli aws opensearch check-service-role
 ```
 
-### Step 3: Deploy Networking Stack
+- ✓ green panel → the role exists, you can skip this step.
+- ✗ red panel (`NoSuchEntity`) → run the deploy below.
+
+**Deploy:**
+
+🖥️ **Execute**:
+```bash
+canopycli aws cloudformation deploy Bootstrap
+```
+
+✅ **Verify:**
+```bash
+canopycli aws cloudformation status Bootstrap
+canopycli aws opensearch check-service-role   # the role should now exist
+```
+**Expected:** stack `CREATE_COMPLETE` and `check-service-role` returns the green ✓ panel.
+
+---
+
+### Step 8: Deploy Networking Stack
 **Time:** 5 minutes
 
 Creates VPC, subnets, security groups, and networking infrastructure.
 
+🖥️ **Execute**:
 ```bash
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-Networking-${CANOPY_ENV} \
-  --template-file modules/Networking.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
+canopycli aws cloudformation deploy Networking
 ```
 
 ✅ **Verify:** 
 ```bash
-aws cloudformation describe-stacks \
-  --stack-name ${CANOPY_PROJECT_NAME}-Networking-${CANOPY_ENV} \
-  --query 'Stacks[0].StackStatus' \
-  --output text \
-  --no-cli-pager
+canopycli aws cloudformation status Networking
 ```
 **Expected:** `CREATE_COMPLETE`
 
 ---
 
-### Step 4: Deploy S3 Stack
+### Step 9: Deploy S3 Stack
 **Time:** 5 minutes
 
 Creates S3 buckets for data files, metadata files, data dictionary files and lambda functions code.
 
-#### step 4a. Configure DataHubUniqueId for S3 Buckets 
+#### Step 9a. Configure DeploymentId for S3 Buckets
 
-S3 bucket names must be globally unique. Update the `DataHubUniqueId` parameter:
+S3 bucket names must be globally unique. Update the `DeploymentId` parameter, and **reload the env vars**:
 
+🖥️ **Execute**:
 ```bash
 # Open parameters file for your environment
 nano ${CANOPY_AWS_PARAMETER_FILE} 
 
-# edit your `DataHubUniqueId` parameter
+# edit your `DeploymentId` parameter
 # important: use lowercase only, as this value will also be used in s3 bucket names, which only allow lowercase
 
-# save it in the environment variable
-export CANOPY_UNIQUE_ID=$(cat ${CANOPY_AWS_PARAMETER_FILE} | grep -o '"DataHubUniqueId": "[^"]*"' | cut -d'"' -f4)
-echo "Canopy Unique Id: $CANOPY_UNIQUE_ID"
+source ${CANOPY_HOME}/set-canopy-env.sh
 ```
 
-**Update the `DataHubUniqueId` value:**
+**Update the `DeploymentId` value:**
 - Use lowercase letters, numbers, and hyphens only
 - Keep it short (5-20 characters)
 - Make it unique (e.g., your institution name + random string)
-- Example: `stanford-abc123`, `myorg-dev`, `acme-prod`
+- **Do not repeat the `ProjectName` or the `Environment` values!** Those will be used anyways everywhere where `DeploymentId` is used.
+- Examples: `stanford-abc123`, `0001`, `acme-ABC`
 
 **Bucket names that will be created:**
-- `${PROJECT_NAME}-upload-portal-${CANOPY_UNIQUE_ID}-$CANOPY_ENV}`
-- `${PROJECT_NAME}-sftp-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}`
-- `${PROJECT_NAME}-review-{$CANOPY_UNIQUE_ID}-{$CANOPY_ENV}`
-- `${PROJECT_NAME}-default-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}`
-- `${PROJECT_NAME}-lambda-artifacts-{$CANOPY_UNIQUE_ID}-${CANOPY_ENV}`
-- `${PROJECT_NAME}-resources-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}`
+- `${PROJECT_NAME}-upload-portal-${CANOPY_DEPLOYMENT_ID}-$CANOPY_ENV}`
+- `${PROJECT_NAME}-sftp-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}`
+- `${PROJECT_NAME}-review-{$CANOPY_DEPLOYMENT_ID}-{$CANOPY_ENV}`
+- `${PROJECT_NAME}-default-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}`
+- `${PROJECT_NAME}-lambda-artifacts-{$CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}`
+- `${PROJECT_NAME}-resources-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}`
 
-#### Step 4b. Deploy into AWS
+#### Step 9b. Deploy into AWS
+🖥️ **Execute**:
 ```bash
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-S3-${CANOPY_ENV} \
-  --template-file modules/S3.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
+canopycli aws cloudformation deploy S3
 ```
 
-⚠️ **Troubleshooting:** If deployment fails with "BucketAlreadyExists", go back to Step 4.1 and choose a different `DataHubUniqueId`.
+⚠️ **Troubleshooting:** If deployment fails with `BucketAlreadyExists`, go back to Step 9a and choose a different `DeploymentId`.
 
 ✅ **Verify:** 
 ```bash
-aws s3 ls | grep ${CANOPY_PROJECT_NAME}
+canopycli aws s3 list
 ```
 **Expected:** Should list 6 buckets
 
 ---
 
-### Step 5: Deploy LoadBalancer Stack
+### Step 10: Request SSL/TLS Certificate (ACM)
+**Time:** 10 minutes (plus a few minutes for DNS validation)
+
+Before deploying the Application Load Balancer, you must have a validated public ACM certificate for the domain that will serve Canopy. The ALB's HTTPS listener references this certificate by ARN, so the certificate **must exist and be issued before Step 11**.
+
+#### Why HTTPS (and therefore this certificate) is required
+
+- **Keycloak mandates HTTPS.** In production mode Keycloak refuses to issue tokens or accept logins over plain HTTP. Any authentication flow that reaches Keycloak over `http://` will fail with SSL/redirect errors, breaking the entire login experience.
+- **User data must not travel over HTTP.** Authentication tokens, session cookies, personal details, and submission payloads all flow through the ALB. HTTP provides no confidentiality and no integrity protection — anyone on the network path could read or tamper with these. TLS termination at the ALB is the minimum bar for protecting user data.
+- **Browser policy.** Modern browsers block mixed content and refuse to persist `Secure` cookies over HTTP, which would break both the UI and Keycloak session handling even if the backend tolerated it.
+
+For these reasons, the ALB **must** terminate HTTPS using an ACM-issued certificate, and HTTP/80 must 301-redirect to HTTPS/443. The LoadBalancer stack deployed in Step 11 is already configured to do this — but only if a valid `CertificateId` is provided, which is what this step produces.
+
+#### Step 10a: Request a Certificate in ACM
+
+1. Open the [AWS Certificate Manager console](https://console.aws.amazon.com/acm/home?region=us-east-1) **in the same region as the ELB**.
+2. Click **Request a certificate** → choose **Public certificate**.
+3. Enter the domain name you will use to serve Canopy: `<YOUR-SUBDOMAIN-NAME>.<YOUR-DOMAIN-NAME>` (for example, `canopy-dev.yourdomain.com`).
+4. Choose **DNS validation**. ACM will produce a CNAME record (a name and a value) that you must add to your DNS to prove domain ownership.
+
+#### Step 10b: Add the ACM Validation CNAME to DNS
+
+1. In the DNS manager for `<YOUR-DOMAIN-NAME>`, create a CNAME record using the name and value ACM provided. It will look something like:
+   - **Hostname:** `_abcdef1234.canopy-dev` - You will probably need to leave out the <YOUR-DOMAIN-NAME> part from the end of the name.
+   - **Alias to:** `_xyz789.acm-validations.aws`
+2. Wait a few minutes — ACM will detect the record and flip the certificate status to **Issued**.
+3. Copy the certificate ARN (e.g., `arn:aws:acm:${AWS::Region}:${AWS::AccountId}:certificate/<CERT-UUID>`).
+
+✅ **Verify:** the certificate status in the ACM console must show **Issued** before continuing. A status of *Pending validation* means DNS has not yet propagated — wait and refresh.
+
+#### Step 10c: Configure the CertificateId and PublicHostname Parameters
+
+Add the following two values to `aws-parameters-${CANOPY_ENV}-{USERNAME}.json`:
+
+```json
+"CertificateId": "<CERT-UUID>",
+"PublicHostname": "https://<YOUR-SUBDOMAIN-NAME>.<YOUR-DOMAIN-NAME>"
+```
+
+- **`CertificateId`** — the UUID segment of the certificate ARN (not the full ARN). `LoadBalancer.yaml` reads this and attaches the ACM certificate to the HTTPS listener that Step 11 creates. Without it, the LoadBalancer stack deploy will fail.
+- **`PublicHostname`** — the full public HTTPS URL the users will access Canopy at (same domain the certificate was issued for, with `https://` scheme). It is consumed by two stacks later in the deployment:
+  - `ECS-Keycloak.yaml` passes it as `KC_HOSTNAME`, so Keycloak advertises this URL in its OIDC discovery document and uses it for redirects.
+  - `SecretsManager.yaml` uses it to populate `HostURL`, `CANOPY_KEYCLOAK_ISSUER_URI`, and `CANOPY_KEYCLOAK_JWK_SET_URI` in the application secret — these must match Keycloak's advertised hostname exactly, otherwise token validation and JWKS fetches will fail.
+
+> **Note — pointing the domain at the ALB happens *after* Step 11.** The ALB DNS name does not exist until the LoadBalancer stack has been deployed, so the `<YOUR-SUBDOMAIN-NAME>` → `<ALB-DOMAIN-NAME>` CNAME is added as a post-deployment task at the end of Step 11.
+
+---
+
+### Step 11: Deploy LoadBalancer Stack
 **Time:** 5 minutes
 
 Creates Application Load Balancer, target groups, and routing rules.
 
+🖥️ **Execute**:
 ```bash
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-LoadBalancer-${CANOPY_ENV} \
-  --template-file modules/LoadBalancer.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
+canopycli aws cloudformation deploy LoadBalancer
 ```
 
 ✅ **Verify:** Get ALB DNS name
 ```bash
-aws elbv2 describe-load-balancers \
-  --query "LoadBalancers[?contains(LoadBalancerName, \`${CANOPY_PROJECT_NAME}\`)].DNSName" \
-  --output text \
-  --no-cli-pager
+canopycli aws elb dns
 ```
-**Expected:** DNS name like `${CANOPY_PROJECT_NAME}-${ENV}-123456789.us-east-1.elb.amazonaws.com`
+**Expected:** DNS name like `${CANOPY_PROJECT_NAME}-${CANOPY_ENV}-123456789.us-east-1.elb.amazonaws.com`
 
-#### Post-deployment: Set ALB URL for SecretsManager and UI
+> You don't need to save this ALB DNS name anywhere — downstream stacks (`SecretsManager.yaml`, `ECS-Keycloak.yaml`) consume `PublicHostname` (configured in Step 10c), not the raw ALB DNS. The ALB DNS is only used for the DNS CNAME below.
 
-The ALB DNS from Step 5 must be used in two places later, so the application and backend use the correct URL:
+#### Post-deployment: Point the Domain at the ALB
 
-1. **SecretsManager (Step 13)** — Save the ALB DNS name in `parameters-${CANOPY_ENV}.json` now, before deploying the SecretsManager stack. `SecretsManager.yaml` reads `HostURL` as a CloudFormation parameter and injects it directly into the secret, so no manual editing of the secret is required.
+Now that the ALB exists, finish the HTTPS wiring started in Step 10 by pointing your domain at it. In the DNS manager for `<YOUR-DOMAIN-NAME>`, add a CNAME record:
 
-   ```json
-   "LoadBalancerDomainName": "http://${CANOPY_PROJECT_NAME}-${CANOPY_ENV}-123456789.us-east-1.elb.amazonaws.com"
-   ```
+| Field        | Value                   |
+|--------------|-------------------------|
+| **Type**     | CNAME                   |
+| **Hostname** | `<YOUR-SUBDOMAIN-NAME>` |
+| **Alias to** | `<ALB-DOMAIN-NAME>`     |
+| **TTL**      | Default                 |
 
-   > Replace the placeholder above with the actual DNS name returned by the verify command above.
+This makes `<YOUR-SUBDOMAIN-NAME>.<YOUR-DOMAIN-NAME>` resolve to the load balancer. Because the ACM certificate from Step 10 covers exactly this domain, HTTPS will work as soon as DNS propagates.
 
-2. **UI Dockerfile (Step 21)** – The frontend is built with **NEXT_PUBLIC_DEV_URL**. When you build the UI image in Step 21, pass the ALB URL in the [Dockerfile](https://github.com/canopy-datahub/datahub-ui-main/blob/feature/aws/Dockerfile)
+✅ **Verify** after DNS propagates (usually a few minutes). At this point the ALB exists but no backend services are registered yet (the UI and backend don't deploy until Step 27), so a working HTTPS setup is signalled by the TLS handshake succeeding — a `503 Service Unavailable` from the ALB is expected and correct:
 
+```bash
+# TLS handshake must succeed (cert valid for this domain). Expected status: HTTP/2 503 from awselb/2.0
+curl -I https://<YOUR-SUBDOMAIN-NAME>.<YOUR-DOMAIN-NAME>
+
+# Should 301 redirect to HTTPS
+curl -I http://<YOUR-SUBDOMAIN-NAME>.<YOUR-DOMAIN-NAME>
+
+# Explicit cert-chain check (no 503 noise — just verifies the cert is trusted and matches the domain)
+curl -Iv https://<YOUR-SUBDOMAIN-NAME>.<YOUR-DOMAIN-NAME> 2>&1 | grep -E "subject:|issuer:|SSL certificate verify"
+```
+
+If you see a TLS error (e.g. `SSL certificate problem: unable to get local issuer certificate` or `certificate verify failed`), the ACM certificate is not attached correctly — revisit Step 10c (`CertificateId` parameter) and re-deploy the LoadBalancer stack. A real end-to-end HTTPS check against the UI service happens in Step 28.
 
 ---
 
-### Step 6: Deploy RDS Stack
+### Step 12: Deploy RDS Stack
 **Time:** 15 minutes
 
 Creates RDS PostgreSQL database instance.
 
-#### Step 6a. Configure RDS Security Group
+#### Step 12a. Configure RDS Security Group
 
 Before deploying, get your public IP and save it as `MyIP` in `parameters-${CANOPY_ENV}.json`. `RDS.yaml` reads this value as a CloudFormation parameter and adds it to the RDS security group, so no manual file editing is required.
 
@@ -473,112 +612,116 @@ Before deploying, get your public IP and save it as `MyIP` in `parameters-${CANO
 curl -4 ifconfig.me
 ```
 
-Then set the value in `parameters-${CANOPY_ENV}.json`:
+Then set the value in `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`:
 
 ```json
-"MyIP": "203.0.113.5/32"
+"MyIP": "REPLACEME/32"
 ```
 
 > Replace the IP above with the one returned by the `curl` command. The `/32` suffix is required.
 
-#### Step 6b. Set RDS Master Password
+#### Step 12b. Set RDS Master Password and Keycloak DB Credentials
 
-The parameter file ships with a placeholder password. **Set it before deploying** — CloudFormation passes it to `RDS.yaml` via `--parameter-overrides` and uses it as the RDS master password at creation time.
+The parameter file ships with placeholder passwords. **Set them before deploying** — CloudFormation passes them to `RDS.yaml` / `SecretsManager.yaml` via `--parameter-overrides`, and `canopycli aws rds deploy-schema` in Step 13a reads them to create the corresponding roles.
 
-In `parameters-${CANOPY_ENV}.json`, replace the placeholder:
+In `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`, replace the placeholders:
 
 ```json
-"CanopyParamDbMasterPassword": "YourSecurePassword123!"
+"DbMasterPassword": "REPLACEME",
+"CanopyAppDbName": "canopy_${CANOPY_ENV}",
+"KeycloakDbName": "canopy_keycloak_${CANOPY_ENV}",
+"KeycloakDbUsername": "canopy_keycloak_user",
+"KeycloakDbPassword": "REPLACEME",
+"KeycloakAdminUsername": "administrator",
+"KeycloakAdminPassword": "REPLACEME"
 ```
 
-#### Step 6c. Deploy RDS Stack
+- **`DbMasterPassword`** — RDS master user password, used to bootstrap the cluster and run the schema-init SQL scripts.
+- **`CanopyAppDbName`** — name of the initial application database RDS creates at provision time. `RDS.yaml` passes it as `DBName`, and `SecretsManager.yaml` writes it into the application secret's `dbname` field. Kept as an explicit parameter for symmetry with `KeycloakDbName`.
+- **`KeycloakDbName`** / **`KeycloakDbUsername`** / **`KeycloakDbPassword`** — Keycloak gets its own PostgreSQL database and role so its tables are not interwoven with the application schema. These values are consumed by `06_create_keycloak_db.sql` (via Step 13a) and by `SecretsManager.yaml` (so the ECS-Keycloak service can authenticate to the isolated DB).
+- **`KeycloakAdminUsername`** / **`KeycloakAdminPassword`** — bootstrap credentials for the Keycloak **master** realm admin console (`${PublicHostname}/admin/master/console/`). Keycloak only reads these on the first container boot against an empty DB to seed the initial admin user — changing them later does not rotate the credentials (use the admin console or `kcadm.sh` for that). Pick values you're willing to commit to the param file.
+
+> ⚠️ Use a different value for `KeycloakDbPassword` than `DbMasterPassword`. That separation is the reason Keycloak has its own role in the first place.
+
+#### Step 12c. Deploy RDS Stack
 
 ```bash
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-RDS-${CANOPY_ENV} \
-  --template-file modules/RDS.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
+canopycli aws cloudformation deploy RDS
 ```
 
 ⏳ **Wait time:** 10-15 minutes for RDS instance to be created
 
 ✅ **Verify:** Get RDS endpoint
 ```bash
-aws rds describe-db-instances \
-  --query "DBInstances[?DBInstanceIdentifier==\`${CANOPY_PROJECT_NAME}-postgresql-${CANOPY_ENV}\`].Endpoint.Address" \
-  --output text \
-  --no-cli-pager
+canopycli aws rds endpoint
 ```
 **Expected:** Endpoint like `${CANOPY_PROJECT_NAME}-postgresql-${CANOPY_ENV}.abc123.us-east-1.rds.amazonaws.com`
 
 #### Post-Deployment: Update Secrets Manager
 
-Save the RDS endpoint as `RDSEndpoint` in `parameters-${CANOPY_ENV}.json` before deploying the SecretsManager stack. `SecretsManager.yaml` reads `RDSEndpoint` as a CloudFormation parameter and injects it directly into the secret, so no manual editing of the secret is required.
+Save the RDS endpoint as `RDSEndpoint` in `aws-parameters-${CANOPY_ENV}-${USERNAME}.json` before deploying the SecretsManager stack. `SecretsManager.yaml` reads `RDSEndpoint` as a CloudFormation parameter and injects it directly into the secret, so no manual editing of the secret is required.
 
 ```json
-"RDSEndpoint": "my-db.myserver.us-east-1.rds.amazonaws.com"
+"RDSEndpoint": "REPLACEME:....amazonaws.com"
 ```
 
-> Replace the placeholder above with the actual endpoint shown at the end of Step 6b.
+> Replace the placeholder above with the actual endpoint shown at the end of Step 12b.
 ---
 
-### Step 7: Database Configuration
+### Step 13: Database Configuration
 
 ---
 
-### Step 7a: Setup Database Schema
+### Step 13a: Set up Database Schema
 **Time:** 30 minutes
 
 This step creates the database schema, tables, views, and initial data in your RDS PostgreSQL instance.
 
 #### 📘 Detailed Documentation
 
-**See:** [README_RDS_DEPLOYMENT.md](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
+**See:** [README_RDS_DEPLOYMENT.md](https://github.com/canopy-datahub/canopy-cli/blob/main/assets/db/README_RDS_DEPLOYMENT.md)
 
 
 #### Quick Setup (Automated)
 
-Use the automated Python deployment script:
+🖥️ **Execute**:
 
 ```bash
-# Navigate to the python script
-cd ${CANOPY_HOME}/datahub-development/db/postgres/db-create-scripts
-
-python deploy_to_rds.py --project-name ${CANOPY_PROJECT_NAME} --env ${CANOPY_ENV} --region ${AWS_REGION} --profile ${AWS_PROFILE}
-
-# Examples for different environments:
-# python deploy_to_rds.py --project-name canopy --env dev --region us-east-1 --profile datahub-rep
-# python deploy_to_rds.py --project-name canopy --env test --region us-east-1 --profile datahub-rep
-# python deploy_to_rds.py --project-name canopy --env prod --region us-east-1 --profile datahub-rep
+canopycli aws rds deploy-schema
 ```
 
-**Script Parameters:**
-- `--project-name`: Project name (e.g., `canopy`) - **REQUIRED**
-- `--env`: Environment (`dev`, `test`, or `prod`) - default: `dev`
-- `--region`: AWS region - default: `us-east-1`
-- `--profile`: AWS profile name - default: `datahub-rep`
+This invokes `DeployRdsWorker`, which discovers the bundled init scripts under `canopy-cli/assets/db/{postgres,keycloak}/init/` and runs each file in numeric order. Connection parameters (`${CANOPY_PROJECT_NAME}`, `${CANOPY_ENV}`, `${AWS_REGION}`, `${AWS_PROFILE}`) come from your sourced `set-canopy-env.sh`. Pass `--dry-run` to print the resolved configuration without executing.
 
 **What the script does:**
 1. ✅ Verifies AWS credentials and RDS connectivity
 2. ✅ Gets RDS endpoint automatically
 3. ✅ Tests database connection
-4. ✅ Runs all SQL scripts in order:
-   - `01_create_user_roles.sql` - Creates database users and roles
-   - `02_create_base_db.sql` - Creates tables, views, functions
-   - `03_populate_base_tables.sql` - Populates lookup tables
-   - `04_populate_variable_tables.sql` - Populates variable data
-   - `05_populate_test_data.sql` - Adds test data (dev/test only)
+4. ✅ Runs all SQL scripts in numeric filename order, with per-file progress + ETA. The init tree is laid out as:
+   - `010_roles.sql` — creates `canopy_admin` / `canopy_user` roles
+   - `020_schemas.sql` — creates the `canopy_history` schema
+   - `030_functions.sql` / `040_procedures.sql` / `050_types.sql`
+   - `1NN_table_<name>.sql` — one file per public table (CREATE TABLE + sequence + index + grants)
+   - `2NN_history_<name>.sql` — one file per `canopy_history` mirror
+   - `300_foreign_keys.sql`, `400_views.sql`, `500_triggers.sql`, `600_grants.sql`
+   - `7NN_data_<name>.sql` — one file per lookup-table seed
+   - `800_sequence_resets.sql`
+   - `900_seed_test_data.sql` — optional test-data seed (dev/test envs only)
+   - `keycloak/init/010_create_keycloak_db.sql` — isolated Keycloak DB + role (reads `KeycloakDbName` / `KeycloakDbUsername` / `KeycloakDbPassword` from `${CANOPY_AWS_PARAMETER_FILE}`)
 5. ✅ Provides next steps for Secrets Manager update
+
+> **Re-splitting after a fresh `pg_dump`.** When you re-dump the database (e.g. after schema changes), regenerate the per-table files with:
+> ```bash
+> canopycli db split-schema <schema-dump.sql>
+> canopycli db split-data   <data-dump.sql>
+> ```
+> Both commands write to `canopy-cli/assets/db/postgres/init/` by default.
 
 ⏳ **Wait time:** ~5-10 minutes for all scripts to complete
 
 ✅ **Verify:** The script will confirm the successful deployment and show table counts.
 ---
 
-### Step 7b: Configure pg_cron Scheduler *(Optional)*
+### Step 13b: Configure pg_cron Scheduler *(Optional)*
 **Time:** 10 minutes
 
 Automates the weekly `hub_content_metrics` snapshot by scheduling `sp_generate_hub_content_metrics()` inside PostgreSQL. Skip this if you prefer to run the procedure manually.
@@ -587,92 +730,48 @@ Automates the weekly `hub_content_metrics` snapshot by scheduling `sp_generate_h
 
 ---
 
-### Step 8: Deploy Route53 Stack (Optional)
-**Time:** 5 minutes
-💡 **Skip this step** if you don't have Route53 hosted zones configured.
-
-Creates DNS records and routing configurations.
-
-⚠️ **Note:** This stack is organization-dependent. Consult with your DNS administrator before deploying.
-
-```bash
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-Route53-${CANOPY_ENV} \
-  --template-file modules/Route53.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
-```
-
----
-
-### Step 9: Deploy CloudWatch Stack
+### Step 14: Deploy CloudWatch Stack
 **Time:** 5 minutes
 
 Creates monitoring, logging, and alerting infrastructure.
 
 ```bash
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-CloudWatch-${CANOPY_ENV} \
-  --template-file modules/CloudWatch.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
+canopycli aws cloudformation deploy CloudWatch
 ```
 
 ✅ **Verify:** List log groups
 ```bash
-aws logs describe-log-groups \
-  --query "logGroups[?contains(logGroupName, \`${CANOPY_PROJECT_NAME}\`)].logGroupName" \
-  --no-cli-pager
+canopycli aws logs list
 ```
 
 ---
 
-### Step 10: Deploy SQS Stack
+### Step 15: Deploy SQS Stack
 **Time:** 5 minutes
 
 Creates SQS queues for message processing.
 
 ```bash
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-SQS-${CANOPY_ENV} \
-  --template-file modules/SQS.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
+canopycli aws cloudformation deploy SQS
 ```
 
 ---
 
-### Step 11: Deploy ECR Stack
+### Step 16: Deploy ECR Stack
 **Time:** 5 minutes
 
 Creates ECR repositories for container images.
 
 ```bash
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-ECR-${CANOPY_ENV} \
-  --template-file modules/ECR.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
+canopycli aws cloudformation deploy ECR
 ```
 
 **What's created:**
-- ECR repositories for each microservice:
-  - `${CANOPY_PROJECT_NAME}-approved-data-service/{CANOPY_ENV}`
+- ECR repositories for each microservice (one per service × env):
   - `${CANOPY_PROJECT_NAME}-download-service/{CANOPY_ENV}`
   - `${CANOPY_PROJECT_NAME}-entityservice/{CANOPY_ENV}`
   - `${CANOPY_PROJECT_NAME}-keycloak/{CANOPY_ENV}`
-  - `${CANOPY_PROJECT_NAME}-opensearchrefresh/{CANOPY_ENV}`
-  - `${CANOPY_PROJECT_NAME}-publicationscript/{CANOPY_ENV}`
   - `${CANOPY_PROJECT_NAME}-report-service/{CANOPY_ENV}`
-  - `${CANOPY_PROJECT_NAME}-reporter/{CANOPY_ENV}`
   - `${CANOPY_PROJECT_NAME}-search/{CANOPY_ENV}`
   - `${CANOPY_PROJECT_NAME}-submission-service/{CANOPY_ENV}`
   - `${CANOPY_PROJECT_NAME}-ui/{CANOPY_ENV}`
@@ -680,27 +779,25 @@ aws cloudformation deploy \
 
 ✅ **Verify:** List ECR repositories
 ```bash
-aws ecr describe-repositories \
-  --query "repositories[?contains(repositoryName, \`${CANOPY_PROJECT_NAME}\`)].repositoryName" \
-  --no-cli-pager
+canopycli aws ecr list
 ```
 
 ---
 
-### Step 12: Deploy OpenSearch Stack
+### Step 17: Deploy OpenSearch Stack
 **Time:** 20 minutes
 
 Creates OpenSearch domain for search and analytics.
 
-#### Step 12a. Configure OpenSearch Credentials
+#### Step 17a. Configure OpenSearch Credentials
 
 ⚠️ **Security:** Change the default OpenSearch password before deployment!
 
-Edit `parameters-${CANOPY_ENV}.json` and update:
+Edit `aws-parameters-${CANOPY_ENV}-${USERNAME}.json` and update:
 ```json
 {
   "OpenSearchUsername": "opensearch",
-  "OpenSearchPassword": "ChangeMe@2026"
+  "OpenSearchPassword": "REPLACEME"
 }
 ```
 
@@ -708,99 +805,76 @@ Edit `parameters-${CANOPY_ENV}.json` and update:
 - Minimum 8 characters
 - Must contain uppercase, lowercase, number, and special character
 
-#### Step 12b. Deploy OpenSearch Stack
+#### Step 17b. Deploy OpenSearch Stack
 
-⚠️ **First time deploying OpenSearch in this AWS account?** This warning is about your **AWS account** (identified by its account ID), not the IAM user you created in Step 1.
+> **Prerequisite:** The `AWSServiceRoleForAmazonOpenSearchService` service-linked role must exist in your AWS account before this stack can deploy. If you ran [Step 7: Deploy the Bootstrap Stack](#step-7-deploy-the-bootstrap-stack), this is already taken care of. If you skipped Step 7, go back and run it now — otherwise this deploy will fail with an `Invalid request` error on fresh accounts.
 
-AWS requires a service-linked role called **`AWSServiceRoleForAmazonOpenSearchService`** to exist at the account level before any OpenSearch domain can be created. This role is created once per account and is shared across all IAM users in that account. If no one has ever deployed an OpenSearch (or the older Amazon Elasticsearch Service) domain in this AWS account before, the role will not exist yet — and the CloudFormation stack will fail with an `Invalid request` error.
-
-**How to check:** Run the following command to see if the role already exists in your account:
-
+🖥️ **Verify the prerequisite first** (a few seconds):
 ```bash
-aws iam get-role --role-name AWSServiceRoleForAmazonOpenSearchService --profile ${AWS_PROFILE}
+canopycli aws opensearch check-service-role
 ```
+The command exits 0 with a green ✓ panel if the role exists, or non-zero with a red ✗ panel and the exact remediation steps if it's missing.
 
-- **If the command returns role details** → the role already exists. Leave lines 45-49 in `OpenSearch.yaml` commented out and proceed.
-- **If the command returns a `NoSuchEntity` error** → the role does not exist yet. Uncomment lines 45-49 in [OpenSearch.yaml](https://github.com/canopy-datahub/datahub-cloud-replication/blob/feature/aws/modules/OpenSearch.yaml) (under `datahub-cloud-replication/modules`) before running the deploy command below. CloudFormation will create the role as part of the stack.
-
-> **Note:** Never uncomment those lines if the role already exists — attempting to create it again will cause the stack to fail.
-
+🖥️ **Then deploy the stack:**
 ```bash
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-OpenSearch-${CANOPY_ENV} \
-  --template-file modules/OpenSearch.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
+canopycli aws cloudformation deploy OpenSearch
 ```
 
 ⏳ **Wait time:** 15-20 minutes for OpenSearch domain to be created
 
 ✅ **Verify:** Get OpenSearch endpoint
 ```bash
-aws opensearch describe-domain \
-  --domain-name ${CANOPY_PROJECT_NAME}-opensearch-${CANOPY_ENV} \
-  --query 'DomainStatus.Endpoints.vpc' \
-  --output text \
-  --no-cli-pager
+canopycli aws opensearch endpoint
 ```
-**Expected:** Endpoint like `vpc-datahub-opensearch-dev-abc123.us-east-1.es.amazonaws.com`
+**Expected:** Endpoint like `vpc-canopy-opensearch-dev-abc123.us-east-1.es.amazonaws.com`
 
 #### Post-Deployment: Update Secrets Manager
 
-After OpenSearch stack deployment, save the OpenSearch endpoint as `OpenSearchEndpoint` in `parameters-${ENV}.json` before deploying the SecretsManager stack. `SecretsManager.yaml` reads `OpenSearchEndpoint` as a CloudFormation parameter and injects it directly into the secret as `SEARCH_HOST`, so no manual editing of the secret is required.
+After OpenSearch stack deployment, save the OpenSearch endpoint as `OpenSearchEndpoint` in `parameters-${CANOPY_ENV}.json` before deploying the SecretsManager stack. `SecretsManager.yaml` reads `OpenSearchEndpoint` as a CloudFormation parameter and injects it directly into the secret as `SEARCH_HOST`, so no manual editing of the secret is required.
 
 ```json
 "OpenSearchEndpoint": "vpc-my-domain-abc123.us-east-1.es.amazonaws.com"
 ```
 
-> Replace the placeholder above with the actual endpoint shown at the end of Step 12b.
+> Replace the placeholder above with the actual endpoint shown at the end of Step 17b.
 
-⚠️ **Note:** Step 12b will display the OpenSearch endpoint. Save it in `parameters-${ENV}.json` as shown above — do **not** edit Secrets Manager directly.
+⚠️ **Note:** Step 17b will display the OpenSearch endpoint. Save it in `parameters-${CANOPY_ENV}.json` as shown above — do **not** edit Secrets Manager directly.
 
 ---
 
-### Step 13: Deploy SecretsManager Stack
+### Step 18: Deploy SecretsManager Stack
 **Time:** 5 minutes
 
 Creates secrets for database credentials, API keys, and OpenSearch configuration.
 
 ⚠️ **Important:** Deploy this stack only after **RDS**, **Load Balancer**, and **OpenSearch** are deployed. The secret stores endpoints from those stacks:
 
-- **host** — RDS endpoint (from Step 6)
-- **SEARCH_HOST** — OpenSearch endpoint (from Step 12)
-- **HostURL** — Load Balancer URL (from Step 5)
+- **host** — RDS endpoint (from Step 12)
+- **SEARCH_HOST** — OpenSearch endpoint (from Step 17)
+- **HostURL**, **CANOPY_KEYCLOAK_ISSUER_URI**, **CANOPY_KEYCLOAK_JWK_SET_URI** — all built from `PublicHostname` (configured in Step 10c). This must be the public HTTPS URL, not the raw ALB DNS, so that the values match the `iss` claim and JWKS endpoint Keycloak will advertise.
+- **KC_DB_URL**, **KC_DB_USERNAME**, **KC_DB_PASSWORD** — pre-built JDBC URL + credentials for Keycloak's isolated database (the values configured in Step 12b and materialized by Step 13a's `06_create_keycloak_db.sql`). The ECS-Keycloak task reads these at start-up so Keycloak authenticates to its own DB, not the application DB.
 
 Also update these email values for your environment before deployment:
 
-- **supportEmail** — Address used as the sender (From) for system emails and often in Cc (e.g., study registration, support requests). Use an address on a domain verified in SES (e.g. `*@stanford.edu` if that domain is verified).
+- **SupportEmail** — Address used as the sender (From) for system emails and often in Cc (e.g., study registration, support requests). Use an address on a domain verified in SES (e.g. `*@example.com` if that domain is verified).
 - **StakeholderEmailsStudyReg** — Comma-separated list of additional recipients (Cc) for study registration and study approval emails (e.g., NIH officers). Leave empty or set as needed.
 
 ```bash
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-SecretsManager-${CANOPY_ENV} \
-  --template-file modules/SecretsManager.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
+canopycli aws cloudformation deploy SecretsManager
 ```
 
 ✅ **Verify:** Check secret was created
 
 ```bash
-aws secretsmanager describe-secret \
-  --secret-id ${CANOPY_PROJECT_NAME}_application_${CANOPY_ENV} \
-  --no-cli-pager
+canopycli aws secrets describe
 ```
 
 ---
 
-### Step 14: OpenSearch Reindex Lambda 
-📘 For detailed OpenSearch reindex lambda deployment documentation, see: [README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
+### Step 19: OpenSearch Reindex Lambda 
+📘 For detailed OpenSearch reindex lambda deployment documentation, see: [README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md](https://github.com/canopy-datahub/canopy-development/blob/feature/aws/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
 
-#### Step 14a: Create Lambda Layer
+#### Step 19a: Create Lambda Layer
 **Time:** 5 minutes
 
 **⚠️ MUST BE DONE BEFORE Lambda Stack Deployment**
@@ -835,124 +909,107 @@ Lambda layers separate dependencies from code, enabling faster deployments.
 
 #### Create the Layer
 
-**Ensure Docker is running** (required for ARM64 layer build):
+**Ensure Docker is running** (required for the ARM64 cross-compile step):
 
 ```bash
-# macOS: open Docker Desktop if installed (or start Docker from Applications)
+# macOS: open Docker Desktop if installed (or start it from Applications)
 open -a Docker
 
-# Wait for Docker to finish starting (whale icon in menu bar), then verify:
+# Wait for the whale icon in the menu bar, then verify the daemon is up:
 docker info
 
-# Navigate to python script folder 
-cd ${CANOPY_HOME}/datahub-development/opensearch/opensearch_reindex
-
-# Create Lambda layer with ARM64-compatible dependencies
-python create_layer.py dependency-layer ${AWS_REGION} ${AWS_PROFILE}
+# Build + publish the layer via canopycli
+canopycli aws lambda create-layer
 ```
 
+The default layer name is `dependency-layer`; override with `--name <other>`. Pass `--dry-run` to preview without running Docker or publishing.
+
 **What this does:**
-1. Uses Docker to build ARM64-compatible Python dependencies
-2. Packages dependencies: `psycopg2-binary`, `opensearch-py`, `requests-aws4auth`, `boto3`, `requests`
-3. Publishes layer to AWS Lambda
-4. Outputs Layer ARN for CloudFormation
+1. Runs `docker run --platform linux/arm64 public.ecr.aws/lambda/python:3.11-arm64` and pip-installs the pinned dependency set into a temp directory: `psycopg2-binary==2.9.9`, `opensearch-py`, `requests-aws4auth`, `boto3`, `requests`.
+2. Verifies `psycopg2` ships an `aarch64` binary (warns loudly if it somehow doesn't).
+3. Zips the result and calls `aws lambda publish-layer-version --compatible-runtimes python3.11 --compatible-architectures arm64`.
+4. Prints the **Layer ARN** for the param file.
 
-⏳ **Wait time:** 3-5 minutes (Docker build + upload)
+⏳ **Wait time:** 3–5 minutes (Docker image pull on first run, pip install, upload).
 
-✅ **Verify:** Note the Layer ARN from the output, such as:
+✅ **Verify:** the output panel shows the `Layer ARN`, e.g.:
 ```
 Layer ARN:
-  arn:aws:lambda:us-east-1:accountId:layer:dependency-layer:1
+  arn:aws:lambda:us-east-1:<acct>:layer:dependency-layer:1
 ```
+
 #### Post-Operation: Update parameters file
 
-After the dependency layer was published, save the ARN as `LambdaDependencyLayerArn` in `parameters-${CANOPY_ENV}.json`.
+Copy the ARN into `LambdaDependencyLayerArn` in `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`, then redeploy the Lambda stack:
 
 ```json
-"LambdaDependencyLayerArn": "REPLACEME"
+"LambdaDependencyLayerArn": "arn:aws:lambda:us-east-1:<acct>:layer:dependency-layer:1"
 ```
-
-> Replace the placeholder above with the actual arn shown at the end of Step 14a.
-
 ---
 
-#### Step 14b: Upload OpenSearch Reindex Lambda Code
+#### Step 19b: Upload OpenSearch Reindex Lambda Code
 **Time:** 5 minutes
 
-Package and upload Lambda function code to S3.
+Package and upload the OpenSearch-reindex Lambda code + index mapping JSONs to the project's `lambda-artifacts` S3 bucket. Pass `--dry-run` to preview without building/uploading.
 
-**Script Usage:**
 ```bash
-python deploy_lambda.py ${CANOPY_PROJECT_NAME} ${CANOPY_ENV} ${CANOPY_UNIQUE_ID}
+canopycli aws lambda deploy opensearch-reindex
 ```
 
-**Parameters:**
-
-- **project-name**: Project name (e.g., `datahub`, `canopy`) - **REQUIRED**
-- **env**: `dev`, `test`, or `prod` - **REQUIRED**
-- **DataHubUniqueId**: Unique identifier for S3 bucket (e.g., `stanford`) - **REQUIRED**
-  - S3 bucket: `${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}`
-
 **What this does:**
-1. Validates required files exist
-2. Packages Lambda code with mapping files:
+1. Zips the four files from `${CANOPY_HOME}/canopy-development/opensearch/opensearch_reindex/`:
    - `opensearch_reindex_aws.py`
    - `search_index_mapping.json`
    - `variable_index_mapping.json`
    - `autocomplete_index_mapping.json`
-3. Creates ZIP (should be <100KB)
-4. Uploads to S3: `s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}/opensearch-refresh/`
+2. Uploads to `s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/opensearch-refresh/opensearch-refresh-lambda.zip`.
+3. Prints a hint with the exact `aws lambda update-function-code` command for subsequent hot updates (only needed after the Lambda stack has been deployed at least once).
 
-⚠️ **Note:** Dependencies are NOT included (they're in the layer from Step 14a)
+⚠️ **Note:** Dependencies are NOT included — they come from the layer built in Step 19a. A warning appears if the zip exceeds 1 MB (usually a sign the layer content leaked in).
 
 ✅ **Verify:** Check S3 upload
 ```bash
-aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}/opensearch-refresh/
+aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/opensearch-refresh/
 ```
 **Expected:** Should show `opensearch-refresh-lambda.zip`
 
-### Step 15: Upload Email Service Lambda Code
+### Step 20: Upload Email Service Lambda Code
+
+Maven-build the `canopy-service-email` Spring Boot project and upload the resulting AWS-bundled jar to the `lambda-artifacts` bucket:
 
 ```bash
-cd ${CANOPY_HOME}/datahub-service-email
-
-# Build Spring Boot application for Lambda
-mvn clean package -DskipTests
-
-# Upload to S3
-aws s3 cp target/datahub-service-email-0.0.1-SNAPSHOT-aws.jar \
-  s3://${PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${ENV}/email-service/
+canopycli aws lambda deploy email-service
 ```
+
+**What this does:**
+1. Runs `mvn clean package -DskipTests -q` in `${CANOPY_HOME}/canopy-service-email`.
+2. Picks the `*-aws.jar` artifact from `target/` (falling back to a plain `*.jar` if no `-aws` variant is produced).
+3. Uploads to `s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/email-service/<jar-name>`.
+4. Prints the `aws lambda update-function-code` command for subsequent updates.
+
 ✅ **Verify:** Check S3 upload
 ```bash
-aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}/email-service/
+aws s3 ls s3://${CANOPY_PROJECT_NAME}-lambda-artifacts-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/email-service/
 ```
-**Expected:** Should show `datahub-service-email-0.0.1-SNAPSHOT-aws.jar`
+**Expected:** Should show a single `canopy-service-email-*.jar`.
+
 ---
 
-### Step 16: Deploy Lambda Stack
+### Step 21: Deploy Lambda Stack
 **Time:** 10 minutes
 
 Creates Lambda functions for OpenSearch indexing and email service.
 
 ```bash
-cd ${CANOPY_HOME}/datahub-cloud-replication
-
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-Lambda-${CANOPY_ENV} \
-  --template-file modules/Lambda.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
+canopycli aws cloudformation deploy Lambda
 ```
 
 **What's created:**
 - Lambda function: `${CANOPY_PROJECT_NAME}-OpenSearchRefresh`
   - Runtime: Python 3.11 on ARM64
   - VPC: Deployed in private subnets
-  - Attached layer from Step 14a
-  - Code from S3 (Step 14b)
+  - Attached layer from Step 19a
+  - Code from S3 (Step 19b)
 - Lambda function: `${CANOPY_PROJECT_NAME}-EmailService`
   - Runtime: Java 17
   - Code from S3
@@ -962,37 +1019,24 @@ aws cloudformation deploy \
 
 ✅ **Verify:** Check Lambda functions exist
 ```bash
-aws lambda list-functions \
-  --query "Functions[?contains(FunctionName, \`${CANOPY_PROJECT_NAME}\`)].FunctionName" \
-  --no-cli-pager
+canopycli aws lambda list
 ```
 
 #### Test OpenSearch Lambda (Optional)
 
 ```bash
-aws lambda invoke \
-  --function-name ${CANOPY_PROJECT_NAME}-OpenSearchRefresh \
-  --payload '{}' \
-  response.json
-
-cat response.json
+canopycli aws lambda invoke OpenSearchRefresh
 ```
 
 ---
 
-### Step 17: Deploy ECS Stack
+### Step 22: Deploy ECS Stack
 **Time:** 20 minutes
 
 Creates ECS cluster, services, and container definitions for all microservices.
 
 ```bash
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-ECS-${CANOPY_ENV} \
-  --template-file modules/ECS.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
+canopycli aws cloudformation deploy ECS
 ```
 
 ⏳ **Wait time:** 15-20 minutes for all services to start
@@ -1009,254 +1053,215 @@ aws cloudformation deploy \
 
 ✅ **Verify:** Check ECS services are running
 ```bash
-aws ecs list-services \
-  --cluster ${CANOPY_PROJECT_NAME}-Services-${CANOPY_ENV} \
-  --no-cli-pager
+canopycli aws ecs list-services
 ```
 
 ---
 
-### Step 17.1: Deploy Keycloak
+### Step 23: Deploy Keycloak
 **Time:** 30 minutes
 
 Deploys Keycloak as a dedicated ECS service for identity and access management.
 
-#### Step 17.1a: Build and Push Keycloak Image
+#### Step 23a: Build and Push Keycloak Image
 **Time:** 5 minutes
 
-Build the Keycloak Docker image and push it to ECR:
+Build the Keycloak Docker image and push it to ECR **before** creating the ECS service. The ECS service in Step 23b references this image by URI; if the image isn't in ECR when the service starts, every task will fail with `CannotPullContainerError` and the ECS deployment circuit breaker will trip.
 
 ```bash
-cd ${CANOPY_HOME}/datahub-deployment-scripts
-python deploy.py ${CANOPY_PROJECT_NAME} keycloak ${CANOPY_ENV} 26.5.4
+canopycli aws ecs deploy keycloak
 ```
 
-> The `26.5.4` argument pins the Keycloak image to a specific version tag.
+For `keycloak` the `--tag` flag is optional — canopycli reads `KeycloakImageTag` from `aws-parameters-${CANOPY_ENV}-${USERNAME}.json` (currently `26.5.4`) and uses it as the image tag. Pass `--tag <other>` to override, or `--dry-run` to preview without building.
+
+✅ **Verify:** the image is in ECR:
+
+```bash
+canopycli aws ecr list-images keycloak
+```
+
+Expected: `26.5.4` (and possibly `latest`). Run without the `keycloak` argument to list tags across **all** project ECR repos.
 
 ---
 
-#### Step 17.1b: Deploy Keycloak ECS Stack
+#### Step 23b: Deploy Keycloak ECS Stack
 **Time:** 5 minutes
 
-Deploy the Keycloak-specific ECS service via CloudFormation:
+Deploy the Keycloak-specific ECS service via CloudFormation. Run this **after** Step 23a has pushed the image to ECR:
 
 ```bash
-cd ${CANOPY_HOME}/datahub-cloud-replication
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-ECS-Keycloak-${CANOPY_ENV} \
-  --template-file modules/ECS-Keycloak.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --region ${AWS_REGION} \
-  --profile ${AWS_PROFILE}
+canopycli aws cloudformation deploy ECS-Keycloak
 ```
+
+> **Database isolation:** Keycloak authenticates to its own PostgreSQL database (configured in Step 12b, created by `06_create_keycloak_db.sql` in Step 13a, and surfaced to the container via the `KC_DB_URL` / `KC_DB_USERNAME` / `KC_DB_PASSWORD` keys in the application secret).
+> The application database and Keycloak's internal state are fully separated.
 
 ---
 
-#### Step 17.1c: Configure Keycloak Database SSL
-**Time:** 5 minutes
+#### Step 23c: Verify the Auto-Imported Realm
+**Time:** 2 minutes
 
-Connect to the RDS instance and disable SSL enforcement on the Keycloak master realm. Replace `<DBMasterUsername>` and `<DBName>` with the values from your RDS configuration:
+The `canopy-keycloak` image ships with the `CANOPY` realm baked in (with hostnames sanitized to a sentinel that the container's entrypoint substitutes with `${KC_HOSTNAME}` at start-up). On first boot, `kc.sh start --optimized --import-realm` creates the realm, `canopy-client` public client, realm roles, and the two test users. On subsequent boots, `--import-realm` is idempotent — it sees the realm already exists and skips.
+
+Open the Keycloak master-realm admin console in your default browser:
 
 ```bash
-psql -h $(aws rds describe-db-instances \
-  --query "DBInstances[?DBInstanceIdentifier==\`${CANOPY_PROJECT_NAME}-postgresql-${CANOPY_ENV}\`].Endpoint.Address" \
-  --output text --profile ${AWS_PROFILE}) \
-  -U <DBMasterUsername> \
-  -d <DBName>
+canopycli aws open keycloak-admin
 ```
 
-Once connected, run:
+This resolves to `${PublicHostname}/admin/master/console/` (e.g. `https://canopy-prod.example.com/admin/master/console/`). Log in with the bootstrap admin credentials — `${KeycloakAdminUsername}` / `${KeycloakAdminPassword}` values from `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`.
 
-```sql
-SELECT id, name, ssl_required FROM realm;
+**Verify:**
 
-UPDATE realm SET ssl_required='NONE' WHERE name = 'master';
-```
+| Check | Where | Expected |
+|---|---|---|
+| Realm exists | Top-left realm dropdown | `CANOPY` is listed alongside `master` |
+| Client exists | `CANOPY` → Clients | `canopy-client` is present, **Client authentication: Off** (public client) |
+| Redirect URIs rendered | `canopy-client` → Settings → Valid redirect URIs | Starts with `${PublicHostname}/...`, **not** `@@PUBLIC_HOSTNAME@@` and **not** `https://canopy.example.com/*` |
+| Test user exists | `CANOPY` → Users | `test@test.com` (password `Password123`, `Temporary: Off`, UUID `333e4567-e89b-12d3-a456-426614174002` — pinned to match `users.uuid` for `id=3` in the canopy DB) |
+| Theme applied | `canopycli aws open keycloak-realm` (takes you to the CANOPY realm console) | The custom `canopy` login theme renders, not the default Keycloak one |
+
+If redirect URIs still contain `@@PUBLIC_HOSTNAME@@`, the entrypoint substitution didn't run — check the ECS task logs for the `Rendered realm-import` line; if absent, verify `KC_HOSTNAME` is actually set in the task environment (it's derived from the `PublicHostname` stack parameter). If redirect URIs still contain `canopy.example.com`, an unsanitized realm JSON got baked into the image — rebuild with Step 23b.
+
+> **To refresh the realm** (e.g. after updating `CANOPY-realm.json`): delete the `CANOPY` realm in the admin console, then force a new ECS task deployment. Because `--import-realm` only skips **existing** realms, the fresh container will rebuild it from the image. The application DB (and its users in the `user_entity` table mirrored from the backend) is untouched.
 
 ---
 
-#### Step 17.1d: Restart Keycloak Service
-**Time:** 5 minutes
-
-Force a new ECS deployment so Keycloak picks up the SSL configuration change:
-
-```bash
-aws ecs update-service \
-  --cluster ${CANOPY_PROJECT_NAME}-Services-${CANOPY_ENV} \
-  --service ${CANOPY_PROJECT_NAME}-Keycloak \
-  --force-new-deployment \
-  --profile $AWS_PROFILE \
-  --region $AWS_REGION
-```
-
----
-
-#### Step 17.1e: Initial Keycloak Configuration
+### Step 24: Deploy SES Stack
 **Time:** 10 minutes
 
-> ⚠️ **Note:** These manual steps will be replaced later by an automatic realm import.
+#### Step 24a: Deploy SES Stack
 
-Log in to the Keycloak admin console (accessible via the ALB URL on the `/keycloak` path).
+Creates the SES verified identities the email-lambda relies on to send mail. Read this section end-to-end before running the deploy — the decision about `SenderDomain` depends on which DNS zones you control.
 
-##### Create Realm
+##### How Canopy uses SES (conceptual model)
 
-1. In the top-left dropdown, click **Create realm**
-2. Set **Realm name**: `CANOPY`
-3. Click **Create**
+Three pieces of email configuration flow through the deployment, and they serve **different purposes**. Conflating them is the #1 source of confusion.
 
-##### Create Client
+| Param (in `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`) | Role | Consumer | Needs to be verified? |
+|---|---|---|---|
+| **`SupportEmail`** | The **sender** — the `From:` address on every email the platform sends. | Email-lambda (via `supportEmail` key in the application secret). | **Yes** — either as an email identity (always created by this stack) OR under a verified domain identity. |
+| **`SenderDomain`** *(optional)* | The **sender domain** — enables *any* `*@<SenderDomain>` to send without per-email verification. | SES. This stack creates a domain identity only if `SenderDomain` is non-empty. | **Yes, via DKIM DNS records.** See below for the DNS requirement. |
+| **`StakeholderEmailsStudyReg`** | Comma-separated **recipients** CC'd on study-registration / approval emails (NIH officers, PMs, etc.). | Email-lambda. | **Only in sandbox mode**, and only if you want mail to actually be delivered to them. Not created by this stack — verified manually in the SES console if needed. See Step 24b. |
 
-Inside the `CANOPY` realm, go to **Clients → Create client**:
+Key semantic split: **`SupportEmail` is a sender, `StakeholderEmailsStudyReg` is a recipient.** They may hold the same value in a dev setup — that's coincidental, not semantic.
 
-**General settings:**
+##### Which identities need verification — and where you need DNS access
 
-| Field | Value |
+`SES.yaml` always creates an `AWS::SES::EmailIdentity` for `SupportEmail`, and — if `SenderDomain` is non-empty — a domain-level identity for `SenderDomain`. After `canopycli aws cloudformation deploy SES` the identities *exist* but are `Pending` until verified:
+
+| Identity | How SES verifies it | What you need |
+|---|---|---|
+| **Email identity for `SupportEmail`** | Click-the-link: AWS sends a "Verify your email" message to `SupportEmail`. | An inbox that actually receives mail at that address (or any alias that routes there). |
+| **Domain identity for `SenderDomain`** | DKIM: AWS generates 3 CNAME records; they must be present in the public DNS for `SenderDomain`. | **Write access to the DNS zone for `SenderDomain`.** |
+| **Recipient identities** (sandbox mode only) | Click-the-link, one per address (via SES console). | An inbox for each recipient. |
+
+> ⚠️ **Domain verification is NOT "just declare it and it works".**
+> AWS needs DNS-control proof via the three DKIM CNAME records.
+> Until those records resolve, the domain identity stays `PendingVerification` indefinitely.
+> **Do not set `SenderDomain` to a domain whose DNS zone you cannot modify**.
+
+##### Decision guide — what to set
+
+| You own DNS for the domain of `SupportEmail`? | Recommendation |
 |---|---|
-| Client type | OpenID Connect |
-| Client ID | `canopy-client` |
-| Name | *(leave empty)* |
-| Description | *(leave empty)* |
-| Always display in UI | Off |
+| **Yes** (e.g. you're deploying to `support@your-org.example` and control `your-org.example` DNS) | Set `SenderDomain = "your-org.example"`. Verify once via DKIM; any future `*@your-org.example` sender works without extra config. Email identity for `SupportEmail` also gets created and will verify via its link if the mailbox receives mail — redundant belt-and-suspenders, harmless. |
+| **No — but your sender address is in a domain someone else owns** (e.g. you want `From: you@big-university.edu` but you're not the DNS admin) | Leave `SenderDomain = ""`. Only the email identity for `SupportEmail` is created; it verifies by email link. **No DKIM dance, no DNS access needed.** Works. Downside: future senders from the same domain have to be verified individually via the console. |
+| **Mismatched domains** (e.g. `SupportEmail=you@bigcorp.com`, but `SenderDomain=your-side-project.io`) | Don't do this. A domain identity for `your-side-project.io` does **not** cover `you@bigcorp.com` — the sender's domain and the verified domain must match. Either align them (change `SupportEmail` to be on `your-side-project.io`) or drop `SenderDomain` to `""`. |
 
-**Capability config:**
+For Canopy prod on `example.com` since you control `example.com` DNS, the coherent setup is:
 
-| Field | Value |
-|---|---|
-| Authentication flow | Standard flow |
-| PKCE Method | Choose... |
-
-**Login settings:**
-
-| Field | Value |
-|---|---|
-| Root URL | *(leave empty)* |
-| Home URL | *(leave empty)* |
-| Valid redirect URIs | `http://<YOUR_ALB_URL>/*` |
-| Web origins | `http://<YOUR_ALB_URL>` |
-
-Click **Save**.
-
-##### Create Users
-
-Inside the `CANOPY` realm, go to **Users → Create new user**.
-
-**User 1:**
-
-| Field | Value |
-|---|---|
-| Email verified | On |
-| Username | `alice.smith@example.edu` |
-| Email | `alice.smith@example.edu` |
-| First name | Alice |
-| Last name | Smith |
-
-- Click **Create**, then note the generated **UUID**.
-- Go to the **Credentials** tab → **Set password**: `******`, Temporary: **Off**
-
-**User 2:**
-
-| Field | Value |
-|---|---|
-| Email verified | On |
-| Username | `bob.johnson@example.edu` |
-| Email | `alice.smith@example.edu` |
-| First name | Bob |
-| Last name | Johnson |
-
-- Click **Create**, then note the generated **UUID**.
-- Go to the **Credentials** tab → **Set password**: `******`, Temporary: **Off**
-
----
-
-### Step 18: Deploy SES Stack
-**Time:** 10 minutes
-
-#### Step 18a: Deploy SES Stack
-
-Creates SES email identities for sending emails.
-
-##### 1. Configure Email Identities (Optional)
-
-By default, the SES stack creates three email identities:
-- `datahub@stanford.edu` - Primary sender email
-- `datahub.dev@stanford.edu` - Development/testing email
-- `stanford.edu` - Domain identity (allows sending from any @stanford.edu address)
-
-**To use your own email addresses:**
-
-Edit [`modules/SES.yaml`](https://github.com/canopy-datahub/datahub-cloud-replication/blob/feature/aws/modules/SES.yaml) and replace the default email identities with your organization's emails.
-
-💡 **Tip:** Using a domain identity (e.g., `yourdomain.com`) allows you to send emails from any address at that domain without verifying each individual email.
-
-##### 2. Deploy SES Stack
-
-```bash
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-SES-${CANOPY_ENV} \
-  --template-file modules/SES.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
+```json
+"SupportEmail":               "replaceme-support@example.com",
+"SenderDomain":               "example.com",
+"StakeholderEmailsStudyReg":  "<comma-separated recipients — sender domain independent>"
 ```
 
-⚠️ **Important:** Email identities must be verified before emails can be sent. Complete Step 18b below.
+`replaceme-support@example.com` doesn't need to be a real mailbox for sending to work — the domain identity authorizes SES to send as any `*@example.com`.
+If you want the per-email identity to *also* reach `Verified` status (nice-to-have for belt-and-suspenders), route `replaceme-support@example.com` somewhere you can click the link.
 
----
+##### Deploy
 
-#### Step 18b: Configure SES Email Verification
-**Time:** 10 minutes
-
-Verify email identities for SES (required for sending emails).
-
-##### For Development/Test Environments (Sandbox Mode)
-
-In sandbox mode, both sender AND recipient emails must be verified:
-
-**Verify via AWS Console:**
-1. Go to AWS Console → SES → Verified identities (in `${AWS_REGION}`)
-2. Click on each email identity
-3. Click "Verify" button
-4. Check email inbox for verification link
-5. Click the verification link
-
-⚠️ **Note:** In sandbox mode, emails can only be sent to verified addresses.
-
-##### For Production Environment
-
-Request to move out of sandbox mode:
-
-1. Go to AWS Console → SES → Account dashboard
-2. Click "Request production access"
-3. Fill out the form with your use case
-4. Wait for AWS approval (usually 24-48 hours)
-
-✅ **Verify:** Check verification status
 ```bash
-aws ses get-identity-verification-attributes \
-  --identities datahub@stanford.edu \
-  --profile ${AWS_PROFILE} \
-  --query 'VerificationAttributes.*.VerificationStatus' \
-  --output text
+canopycli aws cloudformation deploy SES
 ```
-**Expected:** `Success`
+
+⚠️ **The identities exist as soon as the stack deploys, but SES will refuse to actually *send* from them until each reaches `Verified` status.** Proceed to Step 24b.
 
 ---
 
-### Step 19: Deploy EventBridge Stack
+#### Step 24b: Verify the SES Identities
+**Time:** 5 minutes (+ however long your DNS takes to propagate for `SenderDomain`)
+
+SES's rule: a send is allowed if **either** the sender's email identity **or** the sender's domain identity is `Verified`. Pick whichever path fits your setup — you don't need both.
+
+##### Option 1 (recommended): Verify `SenderDomain`
+
+Verifying the domain covers every `*@${SenderDomain}` sender in one shot (including `SupportEmail`, if `SupportEmail` is under that domain). The email identity for `SupportEmail` is still created by the stack but doesn't need to reach `Verified` — domain verification is sufficient.
+
+Domain identities are verified via DKIM DNS records (not email clicks). canopycli prints the three CNAMEs ready to paste into your DNS manager:
+
+```bash
+canopycli aws ses dkim
+```
+
+With no argument the command defaults to the `SenderDomain` value from your param file. Pass an explicit identity (`canopycli aws ses dkim example2.com`) to query a different one.
+
+Example output:
+
+```
+           DKIM CNAME records for 'example.com' — add all three to your DNS zone
+┏━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Type  ┃ Host                               ┃ Value                             ┃
+┡━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ CNAME │ abc123…._domainkey.example.com     │ abc123….dkim.amazonses.com        │
+│ CNAME │ def456…._domainkey.example.com     │ def456….dkim.amazonses.com        │
+│ CNAME │ ghi789…._domainkey.example.com     │ ghi789….dkim.amazonses.com        │
+└───────┴────────────────────────────────────┴───────────────────────────────────┘
+DkimEnabled: True   DkimVerificationStatus: Pending
+```
+
+Steps:
+
+1. Run `canopycli aws ses dkim` — copy the three rows.
+2. Add all three as `CNAME` records in the DNS zone for `${SenderDomain}` (Route 53, Cloudflare, Namecheap — whichever hosts your zone). Heads-up: some DNS UIs automatically append the root domain to the host field; if so, enter the host as `abc123…._domainkey` rather than `abc123…._domainkey.example.com` to avoid doubling it up.
+3. Wait for DNS to propagate (usually minutes, sometimes up to 72 hours).
+4. Re-run `canopycli aws ses dkim` — when `DkimVerificationStatus` flips from `Pending` → `Success`, you're done. AWS auto-detects the records; nothing further to trigger.
+
+You can now send from any `*@${SenderDomain}` — skip Option 2.
+
+##### Option 2 (fallback): Verify `SupportEmail` individually
+
+Use this path only when:
+- `SenderDomain` is empty (you chose not to verify a domain), **or**
+- `SupportEmail` is outside `SenderDomain` (e.g. `SupportEmail=you@example.com` but `SenderDomain=your-side-project.io` — mismatched domains, which Step 24a warns against).
+
+AWS automatically sends a "Verify your email" link to the `SupportEmail` address the moment the CFN identity is created. Open that inbox, click the link, and the status flips to `Verified`. Confirm:
+
+```bash
+canopycli aws ses verification
+```
+
+With no argument the command defaults to `SupportEmail` from your param file. Pass an explicit identity (`canopycli aws ses verification other@example.com`) to check a different one.
+
+**Expected:** `VerificationStatus: Success`. `Pending` means the verify link hasn't been clicked yet.
+
+##### Recipients — sandbox vs. production
+
+- **Sandbox mode** (every new AWS account starts here): SES will also refuse to deliver to **unverified recipients**. That means every address in `StakeholderEmailsStudyReg`, plus any test-user email you want to receive mail, must be individually verified via the SES console → Verified identities → Create identity → email. This stack does **not** auto-verify recipients.
+- **Production mode**: recipients do not need verification. To leave sandbox:
+  1. AWS Console → SES → Account dashboard → **Request production access**.
+  2. Fill out the form; AWS typically responds within 24–48 hours.
+
+---
+
+### Step 25: Deploy EventBridge Stack
 **Time:** 5 minutes
 
 Creates EventBridge rules to automatically trigger SQS processing when files are uploaded to S3 via SFTP.
 
 ```bash
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-EventBridge-${CANOPY_ENV} \
-  --template-file modules/EventBridge.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
+canopycli aws cloudformation deploy EventBridge
 ```
 
 **What's created:**
@@ -1265,12 +1270,12 @@ aws cloudformation deploy \
 
 ---
 
-### Step 20: Deploy TransferFamily Stack (SFTP Server)
+### Step 26: Deploy TransferFamily Stack (SFTP Server)
 **Time:** 10 minutes
 
 Creates an AWS Transfer Family SFTP server with custom Lambda-based authentication for secure file uploads.
 
-#### Step 20a: (Optional) Allocate Elastic IP
+#### Step 26a: (Optional) Allocate Elastic IP
 
 The Transfer Family server uses `EndpointType: VPC`, which means it sits inside your VPC with no public DNS by default. Without an Elastic IP, the server has no stable public address — the `s-xxxx.server.transfer.amazonaws.com` hostname won't resolve from the internet, and any assigned IP is ephemeral and changes on redeploy.
 
@@ -1284,39 +1289,51 @@ It is strongly recommended for any environment where external submitters will co
 For a stable, static SFTP endpoint address that doesn't change on redeploy:
 
 ```bash
-aws ec2 allocate-address \
-  --domain vpc \
-  --profile ${AWS_PROFILE} \
-  --tag-specifications 'ResourceType=elastic-ip,Tags=[{Key=Name,Value='${CANOPY_PROJECT_NAME}'-sftp-'${CANOPY_ENV}'},{Key=projectname,Value='${CANOPY_PROJECT_NAME}'},{Key=environment,Value='${CANOPY_ENV}'}]'
-
-# Note the AllocationId from the output (format: eipalloc-xxxxxxxx)
+canopycli aws ec2 allocate-eip
 ```
 
-#### Step 20b: Deploy TransferFamily Stack
+The command tags the EIP with `projectname=${CANOPY_PROJECT_NAME}`, `environment=${CANOPY_ENV}`, and `Name=${CANOPY_PROJECT_NAME}-sftp-${CANOPY_ENV}` so it's easy to find later.
+
+##### Save the AllocationId into the param file
+
+The TransferFamily stack in Step 26b reads the EIP through the `ElasticIPAllocationId` CFN parameter. Copy the `AllocationId` from the output (format: `eipalloc-xxxxxxxxxxxxxxxxx`) into `aws-parameters-${CANOPY_ENV}-${USERNAME}.json`:
+
+```json
+"ElasticIPAllocationId": "eipalloc-0abc1234def567890"
+```
+
+If the param stays at the placeholder value (`"REPLACEME:eipalloc-xxxxxx"`) or is left as the empty string `""`, `TransferFamily.yaml` will deploy the server **without** a fixed Elastic IP — the whole point of Step 26a. Make sure to update the param file before proceeding to Step 26b.
+
+##### Re-query the EIP later
+
+If you lose the `AllocationId` output or want to double-check which EIP is tagged for this project / environment:
 
 ```bash
-cd ~/dataHub/datahub-cloud-replication
-
-# Without Elastic IP:
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-TransferFamily-${CANOPY_ENV} \
-  --template-file modules/TransferFamily.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
-
-# With Elastic IP — first set ElasticIPAllocationId in parameters-${ENV}.json:
-#   "ElasticIPAllocationId": "eipalloc-xxxxxxxx"
-# Then deploy (same command as above):
-aws cloudformation deploy \
-  --stack-name ${CANOPY_PROJECT_NAME}-TransferFamily-${CANOPY_ENV} \
-  --template-file modules/TransferFamily.yaml \
-  --parameter-overrides file://${CANOPY_AWS_PARAMETER_FILE} \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile ${AWS_PROFILE} \
-  --tags projectname=${CANOPY_PROJECT_NAME} environment=${CANOPY_ENV}
+canopycli aws ec2 describe-eip
 ```
+
+Example output:
+
+```
+Elastic IPs tagged projectname='canopy', environment='prod'
+┌─────────────────────┬────────────────────────────┬────────────────┬───────────────┐
+│ Name                │ AllocationId               │ PublicIp       │ AssociationId │
+├─────────────────────┼────────────────────────────┼────────────────┼───────────────┤
+│ canopy-sftp-prod    │ eipalloc-0abc1234def567890 │ 54.10.20.30    │ None          │
+└─────────────────────┴────────────────────────────┴────────────────┴───────────────┘
+```
+
+`AssociationId: None` means the EIP is allocated but not attached to anything yet — normal state between 26a and 26b. After Step 26b, re-running this will show the EIP associated with the Transfer Family server's ENI.
+
+#### Step 26b: Deploy TransferFamily Stack
+
+```bash
+canopycli aws cloudformation deploy TransferFamily
+```
+
+The stack reads `ElasticIPAllocationId` from your param file:
+- **Non-empty** (e.g. `eipalloc-0abc…`) — attaches the EIP to the Transfer Family server. The server comes up with a fixed, whitelist-able public IP.
+- **Empty (`""`)** — no EIP is attached. The server still works but gets an ephemeral IP that changes on redeploy.
 
 **What's created:**
 - AWS Transfer Family SFTP server (VPC endpoint, public subnet AZ1)
@@ -1326,16 +1343,18 @@ aws cloudformation deploy \
 ✅ **Verify:** Get the SFTP server endpoint
 
 ```bash
-SERVER_ID=$(aws transfer list-servers \
-  --profile ${AWS_PROFILE} \
-  --query 'Servers[0].ServerId' \
-  --output text)
-
-echo "SFTP Endpoint: ${SERVER_ID}.server.transfer.${AWS_REGION}.amazonaws.com"
+canopycli aws transfer endpoint
 # Expected format: s-1234567890abcdef0.server.transfer.us-east-1.amazonaws.com
 ```
 
-#### Step 20c: Create an SFTP User Account
+✅ **Verify:** the Elastic IP is now associated with the server (if you set `ElasticIPAllocationId`):
+
+```bash
+canopycli aws ec2 describe-eip
+# AssociationId should now be non-None — the EIP is attached to the server's ENI.
+```
+
+#### Step 26c: Create an SFTP User Account
 
 Each data submitter needs their own SFTP account. **Repeat this step for every submitter**, including the first one. No stack redeployment is needed — the SFTP server looks up any secret under the `SFTP/` namespace at login time.
 
@@ -1357,7 +1376,7 @@ aws secretsmanager create-secret \
   --secret-string "{
     \"Password\": \"${CANOPY_SFTP_PASSWORD}\",
     \"Role\": \"${ROLE_ARN}\",
-    \"HomeDirectory\": \"/${CANOPY_PROJECT_NAME}-sftp-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}/${CANOPY_ENV}/${CANOPY_SFTP_USERNAME}\",
+    \"HomeDirectory\": \"/${CANOPY_PROJECT_NAME}-sftp-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}/${CANOPY_ENV}/${CANOPY_SFTP_USERNAME}\",
     \"Policy\": \"{\\\"Version\\\":\\\"2012-10-17\\\",\\\"Statement\\\":[{\\\"Sid\\\":\\\"AllowListingOfUserFolder\\\",\\\"Action\\\":[\\\"s3:ListBucket\\\"],\\\"Effect\\\":\\\"Allow\\\",\\\"Resource\\\":[\\\"arn:aws:s3:::\${transfer:HomeBucket}\\\"],\\\"Condition\\\":{\\\"StringLike\\\":{\\\"s3:prefix\\\":[\\\"\${transfer:HomeFolder}/*\\\",\\\"\${transfer:HomeFolder}\\\"]}}},{\\\"Sid\\\":\\\"HomeDirObjectAccess\\\",\\\"Effect\\\":\\\"Allow\\\",\\\"Action\\\":[\\\"s3:PutObject\\\",\\\"s3:GetObject\\\",\\\"s3:DeleteObject\\\",\\\"s3:DeleteObjectVersion\\\",\\\"s3:GetObjectVersion\\\",\\\"s3:GetObjectACL\\\",\\\"s3:PutObjectACL\\\"],\\\"Resource\\\":\\\"arn:aws:s3:::\${transfer:HomeDirectory}*\\\"}]}\"
   }" \
   --profile ${AWS_PROFILE} \
@@ -1368,7 +1387,7 @@ aws secretsmanager create-secret \
 > - The `Policy` scopes the session to the user's own folder only. The `${transfer:...}` placeholders are resolved by Transfer Family at login time.
 > - The SFTP login username equals `CANOPY_SFTP_USERNAME` (the secret name minus the `SFTP/` prefix).
 
-#### Step 20d: Register the SFTP User in the Database ⚠️ Required
+#### Step 26d: Register the SFTP User in the Database ⚠️ Required
 
 **Repeat this step for every submitter.** The platform identifies which user made an upload by matching the S3 path against `sftp_path` in the `users` table. The submitter must already have a platform user account (registered on the platform) before this step.
 
@@ -1399,14 +1418,14 @@ aws ec2 describe-addresses \
 |---|---|
 | Host | `54.210.167.43` (public IP only — no `sftp://`, no username prefix) |
 | Username | `${CANOPY_SFTP_USERNAME}` |
-| Password | password set in Step 20c |
+| Password | password set in Step 26c |
 | Port | `22` |
 
 **Using the command line:**
 
 ```bash
 sftp -P 22 ${CANOPY_SFTP_USERNAME}@<PUBLIC_IP>
-# Enter the password set in Step 20c
+# Enter the password set in Step 26c
 
 pwd
 # Expected: /{project}-sftp-{id}-{env}/{env}/{CANOPY_SFTP_USERNAME}
@@ -1417,7 +1436,7 @@ exit
 
 ---
 
-### Step 21: Build and Deploy Services
+### Step 27: Build and Deploy Services
 **Time:** 50 minutes (for all 7 services)
 
 **Now that all AWS infrastructure is deployed, build and deploy your application services to ECS.**
@@ -1426,78 +1445,63 @@ exit
 
 Before proceeding, ensure:
 - ✅ All CloudFormation stacks are complete
-- ✅ ECS cluster is running (Step 17)
-- ✅ ECR repositories exist (Step 11)
+- ✅ ECS cluster is running (Step 22)
+- ✅ ECR repositories exist (Step 16)
 - ✅ Docker is installed and running
 - ✅ Maven is installed (for backend services)
 
-#### Step 21a: Configure UI Environment Variables
+#### Step 27a: Configure UI Environment Variables
 
-The UI build requires environment-specific values baked into the Next.js bundle. Set these up **before** running `deploy.py`.
-
-```bash
-cd ${CANOPY_HOME}/datahub-ui-main
-
-# Copy the example file and fill in your values
-cp .env.example .env.local
-```
-
-Edit `.env.local`:
+The UI build bakes `NEXT_PUBLIC_*` values into the Next.js bundle at `docker build` time — they're injected as `--build-arg` from `${CANOPY_HOME}/canopy-ui-main/.env.${CANOPY_ENV}`. Generate that file from the template with:
 
 ```bash
-# Required — your load balancer URL from Step 5
-NEXT_PUBLIC_DEV_URL=https://<your-alb>.us-east-1.elb.amazonaws.com
-
-# Optional — Google Analytics Measurement ID (leave empty to disable)
-# See GOOGLE_ANALYTICS_SETUP.md for how to obtain this
-NEXT_PUBLIC_GTAG=G-XXXXXXXXXX
-
-# Keep as 1 for production (0 only for local dev with self-signed certs)
-NODE_TLS_REJECT_UNAUTHORIZED=1
+canopycli init ui-env
 ```
 
-#### Step 21b: Install Python Dependencies
+(Pass `--force` to overwrite an existing `.env.${CANOPY_ENV}`.)
+
+**What this does:**
+1. Reads `${CANOPY_HOME}/canopy-ui-main/.env.example` line by line (preserving comments).
+2. Auto-fills any key whose value is already in the param file:
+   - `NEXT_PUBLIC_BACKEND_URL`        ← `PublicHostname`
+   - `NEXT_PUBLIC_KEYCLOAK_URL`       ← `PublicHostname`
+   - `NEXT_PUBLIC_KEYCLOAK_REALM`     ← `KeycloakRealm`
+   - `NEXT_PUBLIC_KEYCLOAK_CLIENT_ID` ← `KeycloakClientId`
+   - `NODE_TLS_REJECT_UNAUTHORIZED`   ← `1` (hardcoded)
+3. Leaves un-mapped keys (e.g. `NEXT_PUBLIC_GTAG` — the optional Google Analytics Measurement ID) with their `.env.example` defaults for you to fill in manually if needed.
+4. Writes the result to `${CANOPY_HOME}/canopy-ui-main/.env.${CANOPY_ENV}` (e.g. `.env.prod`).
+
+✅ **Verify:** open the generated file — `cat ${CANOPY_HOME}/canopy-ui-main/.env.${CANOPY_ENV}` — and confirm the auto-filled values line up with your deployment. If you want GA tracking, fill in `NEXT_PUBLIC_GTAG` before the UI build in Step 27b.
+
+> When `canopycli aws ecs deploy ui` runs in Step 27b, it reads this same `.env.${CANOPY_ENV}` and passes every `NEXT_PUBLIC_*` value as a `--build-arg` to the Dockerfile's multi-stage Next.js build.
+
+#### Step 27b: Deploy All Services
+
+`canopycli aws ecs deploy <service>` automates the full build-and-deploy pipeline for every service. For the UI it automatically reads `.env.production` and passes the values as Docker build args — no extra flags needed.
 
 ```bash
-cd ${CANOPY_HOME}/datahub-deployment-scripts
-
-# Install boto3 for deploy.py script
-pip install boto3
-
-# Or use requirements file
-pip install -r requirements-deploy.txt
+# Deploy each service (one at a time; --tag defaults to 'latest' for all except keycloak)
+canopycli aws ecs deploy user-service
+canopycli aws ecs deploy submission-service
+canopycli aws ecs deploy report-service
+canopycli aws ecs deploy download-service
+canopycli aws ecs deploy entity-service
+canopycli aws ecs deploy search-service
+canopycli aws ecs deploy ui
 ```
 
-#### Step 21c: Deploy All Services
+Pass `--tag <value>` to override the image tag and `--dry-run` to preview without executing.
 
-The `deploy.py` script automates the entire build and deployment process. For the UI service it automatically reads `.env.local` and passes the values as Docker build args — no extra flags needed.
-
-```bash
-cd ${CANOPY_HOME}/datahub-deployment-scripts
-
-# Usage: python deploy.py <project-name> <service-name> <environment> [image-tag]
-# project-name, service-name and environment are required; image-tag defaults to 'latest'.
-
-# Deploy each service (one at a time)
-python deploy.py ${CANOPY_PROJECT_NAME} user-service ${CANOPY_ENV}
-python deploy.py ${CANOPY_PROJECT_NAME} submission-service ${CANOPY_ENV}
-python deploy.py ${CANOPY_PROJECT_NAME} report-service ${CANOPY_ENV}
-python deploy.py ${CANOPY_PROJECT_NAME} download-service ${CANOPY_ENV}
-python deploy.py ${CANOPY_PROJECT_NAME} entity-service ${CANOPY_ENV}
-python deploy.py ${CANOPY_PROJECT_NAME} search-service ${CANOPY_ENV}
-python deploy.py ${CANOPY_PROJECT_NAME} ui ${CANOPY_ENV}     
-```
-
-**What the script does for EACH service:**
-1. ✅ Verifies source directory and Dockerfile exist
+**What the pipeline does for EACH service:**
+1. ✅ Verifies source directory and Dockerfile exist under `${CANOPY_HOME}`
 2. ✅ Builds the application:
-   - **Backend services**: Runs `mvn clean package -DskipTests`
-   - **Frontend (UI)**: Build handled by Docker multi-stage
-3. ✅ Authenticates with AWS ECR
-4. ✅ Builds Docker image for `linux/amd64` platform
-5. ✅ Pushes image to ECR repository
-6. ✅ Forces ECS service redeployment with new image
-7. ✅ Verifies deployment was triggered
+   - **Backend services**: runs `mvn clean package -DskipTests -q`
+   - **Frontend (ui)** and **keycloak**: build handled inside the Dockerfile (no local build)
+3. ✅ Authenticates Docker with AWS ECR (via STS + ECR auth token)
+4. ✅ `docker buildx build --platform linux/amd64 --push` (falls back to `docker build` + `docker push` if buildx isn't available)
+5. ✅ Triggers ECS `UpdateService --force-new-deployment` on the running service
+6. ✅ Polls the PRIMARY deployment for up to 60 s and reports when it's accepted
+7. ℹ️ If the ECS service isn't ACTIVE yet (first-run or post-teardown), prints a clear "create the CFN stack first" message and exits 0 — the image is already in ECR
 
 ⏳ **Wait time:** ~5-7 minutes per service (~50 minutes total)
 
@@ -1509,77 +1513,125 @@ You can check deployment progress in AWS Console:
 - **ECS Console** → Clusters → `${CANOPY_PROJECT_NAME}-Services-{CANOPY_ENV}` → Services
 - Watch for "Running count" to reach "Desired count" (1/1)
 
-✅ **Verify:** Check all services are deployed
+✅ **Verify:** Check all services are deployed and healthy:
+
 ```bash
-aws ecs describe-services \
-  --cluster ${CANOPY_PROJECT_NAME}-Services-${CANOPY_ENV} \
-  --services $(aws ecs list-services --cluster ${CANOPY_PROJECT_NAME}-Services-${CANOPY_ENV} --query 'serviceArns' --output text) \
-  --query 'services[*].{Name:serviceName,Running:runningCount,Desired:desiredCount,Status:status}' \
-  --output table
+canopycli aws ecs status
 ```
 
-**Expected output:** All services should show `Running: 1, Desired: 1, Status: ACTIVE`
+This prints a single table showing every service's status, desired/running/pending counts, and current task-definition revision — with rows highlighted whenever `running != desired`. The bottom line says either `✓ All N services healthy.` (green) or `⚠ At least one service has running != desired …` (yellow), so a glance is enough.
+
+> ⚠️ **Note:** `canopycli aws ecs deploy <name>` exits 0 when ECS *accepts* the deployment, not when the new task is actually running. If a task crashes on startup (bad env var, missing image tag, IAM gap), the previous deploy keeps serving traffic and `aws ecs status` will show the service stuck with `pending=1, running=0`. Always run `aws ecs status` after a multi-service batch — sequential `canopycli aws ecs deploy` commands don't short-circuit on failure, so a single broken service in the middle of the batch is easy to miss in the scrollback.
 
 
 ## Post-Deployment Verification
 
-### Step 22: Verify Deployment
+### Step 28: Verify Deployment
 **Time:** 5 minutes
 
 Check that all stacks deployed successfully:
 
+🖥️ **Execute**:
 ```bash
-# List all ${PROJECT_NAME} stacks
-aws cloudformation list-stacks \
-  --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
-  --query "sort_by(StackSummaries[?contains(StackName, \`${CANOPY_PROJECT_NAME}\`)], &StackName)[].{Name:StackName,Status:StackStatus,Created:CreationTime}" \
-  --output table \
-  --no-cli-pager
+canopycli aws cloudformation status-all
 ```
 
-**Expected:** All stacks should show `CREATE_COMPLETE` or `UPDATE_COMPLETE`
+This pulls every CloudFormation stack matching `${CANOPY_PROJECT_NAME}-*-${CANOPY_ENV}`, prints a table with status / creation time / last-update time, and **diffs against the canonical 16-stack list canopycli expects**. Stacks in non-success states are highlighted in red or yellow; missing-but-expected stacks show up as a `MISSING` row so you don't lose them in the noise; unexpected stacks (e.g. left over from a different project in the same account) are flagged too.
 
-**Stacks you should see (14 total):**
-1. ${CANOPY_PROJECT_NAME}-CloudWatch-{CANOPY_ENV}
-2. ${CANOPY_PROJECT_NAME}-ECR-{CANOPY_ENV}
-3. ${CANOPY_PROJECT_NAME}-ECS-{CANOPY_ENV}
-4. ${CANOPY_PROJECT_NAME}-EventBridge-{CANOPY_ENV}
-5. ${CANOPY_PROJECT_NAME}-Keycloak-{CANOPY_ENV}
-6. ${CANOPY_PROJECT_NAME}-Lambda-{CANOPY_ENV}
-7. ${CANOPY_PROJECT_NAME}-LoadBalancer-{CANOPY_ENV}
-8. ${CANOPY_PROJECT_NAME}-Networking-{CANOPY_ENV}
-9. ${CANOPY_PROJECT_NAME}-OpenSearch-{CANOPY_ENV}
-10. ${CANOPY_PROJECT_NAME}-RDS-{CANOPY_ENV}
-11. ${CANOPY_PROJECT_NAME}-Route53-{CANOPY_ENV} (optional)
-12. ${CANOPY_PROJECT_NAME}-S3-{CANOPY_ENV}
-13. ${CANOPY_PROJECT_NAME}-SES-{CANOPY_ENV}
-14. ${CANOPY_PROJECT_NAME}-SQS-{CANOPY_ENV}
-15. ${CANOPY_PROJECT_NAME}-SecretsManager-{CANOPY_ENV}
-16. ${CANOPY_PROJECT_NAME}-TransferFamily-{CANOPY_ENV}
+```
+CloudFormation stacks for canopy (dev)
+┌────────────────┬─────────────────┬─────────────────────┬─────────────────────┐
+│ Stack          │ Status          │ Created             │ Last updated        │
+├────────────────┼─────────────────┼─────────────────────┼─────────────────────┤
+│ Bootstrap      │ CREATE_COMPLETE │ 2026-04-30T18:21:03 │ —                   │
+│ CloudWatch     │ CREATE_COMPLETE │ 2026-04-30T19:14:55 │ —                   │
+│ ECR            │ CREATE_COMPLETE │ 2026-04-30T19:30:11 │ 2026-05-02T11:08:42 │
+│ ECS            │ CREATE_COMPLETE │ 2026-04-30T20:55:09 │ —                   │
+│ ECS-Keycloak   │ CREATE_COMPLETE │ 2026-04-30T21:42:18 │ —                   │
+│ EventBridge    │ CREATE_COMPLETE │ 2026-04-30T22:01:33 │ —                   │
+│ Lambda         │ CREATE_COMPLETE │ 2026-04-30T20:22:44 │ —                   │
+│ LoadBalancer   │ CREATE_COMPLETE │ 2026-04-30T18:55:41 │ —                   │
+│ Networking     │ CREATE_COMPLETE │ 2026-04-30T18:40:27 │ —                   │
+│ OpenSearch     │ CREATE_COMPLETE │ 2026-04-30T20:05:18 │ —                   │
+│ RDS            │ CREATE_COMPLETE │ 2026-04-30T19:01:52 │ —                   │
+│ S3             │ CREATE_COMPLETE │ 2026-04-30T18:48:11 │ —                   │
+│ SES            │ CREATE_COMPLETE │ 2026-04-30T21:55:36 │ —                   │
+│ SQS            │ CREATE_COMPLETE │ 2026-04-30T19:25:48 │ —                   │
+│ SecretsManager │ CREATE_COMPLETE │ 2026-04-30T20:18:21 │ —                   │
+│ TransferFamily │ CREATE_COMPLETE │ 2026-04-30T22:11:09 │ —                   │
+└────────────────┴─────────────────┴─────────────────────┴─────────────────────┘
+✓ All 16 stacks healthy (matches the 16 expected by canopycli).
+```
+
+✅ **Verify:** look for the green `✓ All 16 stacks healthy` line.
+
+If you see something like `⚠ Issues: 1 missing (canopy-OpenSearch-dev); 1 non-success status` instead, drill into the offending stack with:
+
+```bash
+canopycli aws cloudformation status <Name>
+```
+
+(e.g. `canopycli aws cloudformation status OpenSearch`). That shows the full status reason — usually a CFN parameter problem, a stuck `ROLLBACK_COMPLETE` that needs `aws cloudformation delete-stack` first, or a quota / IAM issue.
+
+**Stacks you should see (16 total):**
+1. ${CANOPY_PROJECT_NAME}-Bootstrap-${CANOPY_ENV}
+2. ${CANOPY_PROJECT_NAME}-CloudWatch-${CANOPY_ENV}
+3. ${CANOPY_PROJECT_NAME}-ECR-${CANOPY_ENV}
+4. ${CANOPY_PROJECT_NAME}-ECS-${CANOPY_ENV}
+5. ${CANOPY_PROJECT_NAME}-ECS-Keycloak-${CANOPY_ENV}
+6. ${CANOPY_PROJECT_NAME}-EventBridge-${CANOPY_ENV}
+7. ${CANOPY_PROJECT_NAME}-Lambda-${CANOPY_ENV}
+8. ${CANOPY_PROJECT_NAME}-LoadBalancer-${CANOPY_ENV}
+9. ${CANOPY_PROJECT_NAME}-Networking-${CANOPY_ENV}
+10. ${CANOPY_PROJECT_NAME}-OpenSearch-${CANOPY_ENV}
+11. ${CANOPY_PROJECT_NAME}-RDS-${CANOPY_ENV}
+12. ${CANOPY_PROJECT_NAME}-S3-${CANOPY_ENV}
+13. ${CANOPY_PROJECT_NAME}-SES-${CANOPY_ENV}
+14. ${CANOPY_PROJECT_NAME}-SQS-${CANOPY_ENV}
+15. ${CANOPY_PROJECT_NAME}-SecretsManager-${CANOPY_ENV}
+16. ${CANOPY_PROJECT_NAME}-TransferFamily-${CANOPY_ENV}
 
 **Services you should see running (8 total):**
+
+🖥️ **Execute**:
 ```bash
-# Check ECS services
-aws ecs list-services \
-  --cluster ${CANOPY_PROJECT_NAME}-Services-${CANOPY_ENV} \
-  --query 'sort(serviceArns)' \
-  --output table \
-  --no-cli-pager
+canopycli aws ecs status
 ```
+
+This shows every service in the cluster with its status, desired/running/pending counts, and current task-definition revision. Rows where `running != desired` are highlighted (a service that's still scaling up or stuck), and the bottom line tells you whether everything is healthy at a glance:
+
+```
+ECS services in 'canopy-Services-dev'
+┌──────────────────────────┬────────┬─────────┬─────────┬─────────┬───────────────┐
+│ Service                  │ Status │ Desired │ Running │ Pending │ Task def      │
+├──────────────────────────┼────────┼─────────┼─────────┼─────────┼───────────────┤
+│ canopy-DownloadService   │ ACTIVE │       1 │       1 │       0 │ canopy-Down…  │
+│ canopy-EntityService     │ ACTIVE │       1 │       1 │       0 │ canopy-Enti…  │
+│ canopy-Keycloak          │ ACTIVE │       1 │       1 │       0 │ canopy-Keyc…  │
+│ canopy-ReportService     │ ACTIVE │       1 │       1 │       0 │ canopy-Repo…  │
+│ canopy-Search            │ ACTIVE │       1 │       1 │       0 │ canopy-Sear…  │
+│ canopy-SubmissionService │ ACTIVE │       1 │       1 │       0 │ canopy-Subm…  │
+│ canopy-UI                │ ACTIVE │       1 │       1 │       0 │ canopy-UI:1   │
+│ canopy-UserService       │ ACTIVE │       1 │       1 │       0 │ canopy-User…  │
+└──────────────────────────┴────────┴─────────┴─────────┴─────────┴───────────────┘
+✓ All 8 services healthy.
+```
+
+✅ **Verify:** look for the green `✓ All 8 services healthy.` line. If you see `⚠ At least one service has running != desired …` instead, jump into the AWS Console (ECS → Cluster → the affected service → **Tasks** tab → click any **STOPPED** task to see why it died — usually an env-var, image-tag, or IAM-permission issue).
 
 Expected services:
 1. ${CANOPY_PROJECT_NAME}-DownloadService
 2. ${CANOPY_PROJECT_NAME}-EntityService
 3. ${CANOPY_PROJECT_NAME}-Keycloak
 4. ${CANOPY_PROJECT_NAME}-ReportService
-5. {CANOPY_PROJECT_NAME}-Search
+5. ${CANOPY_PROJECT_NAME}-Search
 6. ${CANOPY_PROJECT_NAME}-SubmissionService
 7. ${CANOPY_PROJECT_NAME}-UI
 8. ${CANOPY_PROJECT_NAME}-UserService
 
 ---
 
-### Step 23: Test Application
+### Step 29: Test Application
 
 Test that the application is accessible and functioning:
 
@@ -1609,7 +1661,7 @@ curl http://$ALB_DNS/api/submission-service/v1/actuator/health
 
 Open your browser and navigate to: `http://{ALB_DNS}`
 
-✅ **Success!** You should see the DataHub login page.
+✅ **Success!** You should see the Canopy login page.
 
 ---
 
@@ -1630,7 +1682,7 @@ aws cloudformation describe-stack-events \
 
 **Error:** `BucketAlreadyExists` or `BucketAlreadyOwnedByYou`
 
-**Solution:** Go back to Step 4.1 and choose a different `DataHubUniqueId`.
+**Solution:** Go back to Step 9a and choose a different `DeploymentId`.
 
 #### ECS Service Fails to Start
 
@@ -1677,7 +1729,7 @@ aws logs tail /aws/lambda/${CANOPY_PROJECT_NAME}-OpenSearchRefresh-${CANOPY_ENV}
 
 ```bash
 # Test connection from your machine
-psql -h $RDS_ENDPOINT -U datahub_user -d ${CANOPY_PROJECT_NAME}_${CANOPY_ENV}
+psql -h $RDS_ENDPOINT -U canopy_user -d ${CANOPY_PROJECT_NAME}_${CANOPY_ENV}
 ```
 
 #### OpenSearch Connection Issues
@@ -1702,8 +1754,8 @@ aws opensearch describe-domain --domain-name ${CANOPY_PROJECT_NAME}-opensearch-$
 2. **Review CloudFormation Events** - Shows why stacks failed
 3. **AWS Console** - Visual inspection of resources
 4. **Documentation** - Check service-specific READMEs:
-   - [RDS Deployment](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/db/postgres/db-create-scripts/README_RDS_DEPLOYMENT.md)
-   - [Lambda Deployment](https://github.com/canopy-datahub/datahub-development/blob/feature/aws/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
+   - [RDS Deployment](https://github.com/canopy-datahub/canopy-cli/blob/main/assets/db/README_RDS_DEPLOYMENT.md)
+   - [Lambda Deployment](https://github.com/canopy-datahub/canopy-development/blob/feature/aws/opensearch/opensearch_reindex/README_OPENSEARCH_REINDEX_LAMBDA_DEPLOYMENT.md)
 
 ---
 
@@ -1721,7 +1773,7 @@ S3 buckets with content cannot be deleted by CloudFormation:
 
 ```bash
 # Match all buckets for this project/uniqueId/env
-pattern="^${CANOPY_PROJECT_NAME}-.*-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}$"
+pattern="^${CANOPY_PROJECT_NAME}-.*-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}$"
 
 # List matching buckets
 aws s3 ls | awk '{print $3}' | grep -E "$pattern"
@@ -1743,7 +1795,7 @@ aws rds describe-db-instances --query "DBInstances[?contains(DBInstanceIdentifie
 
 # Disable deletion protection (replace INSTANCE_ID with your RDS instance identifier)
 aws rds modify-db-instance \
-  --db-instance-identifier ${CANOPY_PROJECT_NAME}-${CANOPY_UNIQUE_ID}-${CANOPY_ENV}-postgres \
+  --db-instance-identifier ${CANOPY_PROJECT_NAME}-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}-postgres \
   --no-deletion-protection \
   --apply-immediately
 ```
@@ -1755,7 +1807,7 @@ If the stack still cannot delete RDS (e.g., due to automated snapshots), you may
 ECR repositories with images cannot be deleted by CloudFormation. Delete all images in each repository:
 
 ```bash
-# List all DataHub ECR repositories
+# List all Canopy ECR repositories
 aws ecr describe-repositories --query "repositories[?contains(repositoryName, '${CANOPY_PROJECT_NAME}')].repositoryName" --output text
 
 for repo in $(aws ecr describe-repositories --query "repositories[?contains(repositoryName, '${CANOPY_PROJECT_NAME}')].repositoryName" --output text); do
@@ -1778,7 +1830,6 @@ stacks=(
   "${CANOPY_PROJECT_NAME}-ECR-${CANOPY_ENV}"
   "${CANOPY_PROJECT_NAME}-SQS-${CANOPY_ENV}"
   "${CANOPY_PROJECT_NAME}-CloudWatch-${CANOPY_ENV}"
-  "${CANOPY_PROJECT_NAME}-Route53-${ENCANOPY_ENVV}"
   "${CANOPY_PROJECT_NAME}-Keycloak-${CANOPY_ENV}"
   "${CANOPY_PROJECT_NAME}-RDS-${CANOPY_ENV}"
   "${CANOPY_PROJECT_NAME}-LoadBalancer-${CANOPY_ENV}"
@@ -1802,23 +1853,30 @@ echo "Cleanup complete!"
 ### Step 3: Verify Cleanup
 
 ```bash
-# Check for remaining stacks
-aws cloudformation list-stacks \
-  --query "StackSummaries[?contains(StackName, \`${CANOPY_PROJECT_NAME}\`) && StackStatus != \`DELETE_COMPLETE\`].{Name:StackName,Status:StackStatus}" \
-  --output table
+# Check for remaining stacks (every stack should appear as MISSING in the diff)
+canopycli aws cloudformation status-all
 
 # Check for remaining S3 buckets
-aws s3 ls | grep ${CANOPY_PROJECT_NAME}
+canopycli aws s3 list
 
 # Check for remaining ECR repositories
-aws ecr describe-repositories --query "repositories[?contains(repositoryName, \`${CANOPY_PROJECT_NAME}\`)].repositoryName"
+canopycli aws ecr list
 ```
+
+A clean teardown shows every expected stack as `MISSING` in the table (red row) and the bottom line: `⚠ Issues: 16 missing (canopy-Bootstrap-dev, canopy-CloudWatch-dev, …)`. That's the success state for cleanup. If anything else is listed (status other than MISSING, or unexpected rows), it's still up and needs another pass.
+
+### Step 4: ACM Certificate (Manual)
+
+The ACM certificate created in Step 9 is **intentionally outside the CloudFormation lifecycle** and is not deleted by the script above. This is by design: the cert is a long-lived environment artifact (validated once via DNS, auto-renewed by AWS forever) and can be reused across stack rebuilds in the same environment without re-validation.
+
+- **If you are rebuilding the environment**, leave the certificate in place. The next LoadBalancer deploy will reuse the same `CertificateId` parameter.
+- **If you are permanently retiring the environment**, delete the certificate manually in the [ACM console](https://console.aws.amazon.com/acm/home?region=us-east-1) (and remove the validation CNAME at your DNS provider).
 
 ---
 
 ## Summary
 
-🎉 **Congratulations!** You've successfully deployed DataHub to AWS!
+🎉 **Congratulations!** You've successfully deployed Canopy to AWS!
 
 **What you've deployed:**
 - ✅ Complete VPC network infrastructure
@@ -1838,7 +1896,7 @@ aws ecr describe-repositories --query "repositories[?contains(repositoryName, \`
 
 ---
 
-**Document Version:** 1.1  
-**Last Updated:** March 19, 2026 
+**Document Version:** 1.2  
+**Last Updated:** April 29, 2026 
 **Maintained by:** Stanford Canopy Team
 

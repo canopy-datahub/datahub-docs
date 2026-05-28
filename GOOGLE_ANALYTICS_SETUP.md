@@ -21,33 +21,33 @@ NEXT_PUBLIC_GTAG=G-XXXXXXXXXX
 
 ### Local development
 
-Add it to `.env.local` in the `datahub-ui-main` root:
+Add it to `.env.local` in the `canopy-ui-main` root:
 
 ```bash
-# datahub-ui-main/.env.local
+# canopy-ui-main/.env.local
 NEXT_PUBLIC_GTAG=G-XXXXXXXXXX
 ```
 
 ### Docker / ECS deployment
 
-Set `NEXT_PUBLIC_GTAG` in `datahub-ui-main/.env.local` — `deploy.py` reads this file automatically and passes the value as a Docker build arg when deploying the UI:
+Set `NEXT_PUBLIC_GTAG` in `canopy-ui-main/.env.local` — `deploy.py` reads this file automatically and passes the value as a Docker build arg when deploying the UI:
 
 ```bash
-# datahub-ui-main/.env.local
+# canopy-ui-main/.env.local
 NEXT_PUBLIC_GTAG=G-XXXXXXXXXX
 ```
 
 Then deploy as normal:
 
 ```bash
-cd ~/dataHub/datahub-deployment-scripts
+cd ~/CANOPY/canopy-deployment-scripts
 python deploy.py ${PROJECT_NAME} ui ${ENV}
 ```
 
 For a local Docker build/test before deploying:
 
 ```bash
-cd ~/dataHub/datahub-ui-main
+cd ~/CANOPY/canopy-ui-main
 docker-compose build   # reads .env.local automatically
 docker-compose up      # runs on http://localhost:3000
 ```
@@ -136,4 +136,4 @@ To disable GA entirely for an environment, simply omit `NEXT_PUBLIC_GTAG` from t
 | `.env.local` | Measurement ID for local dev and ECS deployments |
 | `Dockerfile` | Declares `NEXT_PUBLIC_GTAG` as a build `ARG` (value supplied at build time) |
 | `docker-compose.yml` | Reads `.env.local` and forwards `NEXT_PUBLIC_GTAG` as a build arg for local Docker builds |
-| `datahub-deployment-scripts/deploy.py` | Reads `.env.local` and passes `NEXT_PUBLIC_GTAG` as `--build-arg` when deploying to ECS |
+| `canopy-deployment-scripts/deploy.py` | Reads `.env.local` and passes `NEXT_PUBLIC_GTAG` as `--build-arg` when deploying to ECS |
