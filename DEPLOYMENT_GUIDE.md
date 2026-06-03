@@ -1763,6 +1763,17 @@ aws opensearch describe-domain --domain-name ${CANOPY_PROJECT_NAME}-opensearch-$
 
 **⚠️ WARNING:** This will delete ALL resources and data. Make sure you have backups!
 
+### Step 0: Confirm the CLI target (do this first)
+
+Cleanup commands are destructive and silent about the wrong account/region. Confirm before running anything — a missing region or stale credentials will make resources *look* absent and leave them behind.
+
+```bash
+aws sts get-caller-identity --query Account --output text   # must be the target account ID
+aws configure list | grep region                            # must be the env's region (not empty)
+```
+
+If `get-caller-identity` errors with `NoCredentials`, run `aws login` (or export `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN`) and set `export AWS_REGION=<region>` before continuing.
+
 ### Step 1: Empty Containers
 
 Before deleting the stack, empty S3 buckets, RDS, and ECR so CloudFormation can remove these resources.
@@ -1793,9 +1804,10 @@ Disable deletion protection on the RDS instance so the stack can delete it. If y
 # List RDS instances for this project
 aws rds describe-db-instances --query "DBInstances[?contains(DBInstanceIdentifier, '${CANOPY_PROJECT_NAME}')].DBInstanceIdentifier" --output text
 
-# Disable deletion protection (replace INSTANCE_ID with your RDS instance identifier)
+# Disable deletion protection. The instance identifier is ${ProjectName}-postgresql-${Environment}
+# (defined in RDS.yaml) — e.g. canopy-postgresql-dev. NOT a DeploymentId-based name.
 aws rds modify-db-instance \
-  --db-instance-identifier ${CANOPY_PROJECT_NAME}-${CANOPY_DEPLOYMENT_ID}-${CANOPY_ENV}-postgres \
+  --db-instance-identifier ${CANOPY_PROJECT_NAME}-postgresql-${CANOPY_ENV} \
   --no-deletion-protection \
   --apply-immediately
 ```
@@ -1804,17 +1816,34 @@ If the stack still cannot delete RDS (e.g., due to automated snapshots), you may
 
 #### Step 1c: Empty ECR
 
-ECR repositories with images cannot be deleted by CloudFormation. Delete all images in each repository:
+ECR repositories with images cannot be deleted by CloudFormation.
+
+> **Note:** `ECR.yaml` now sets `EmptyOnDelete: true` on every repository, so the `ECR` stack deletes its repos (and their images) automatically. This step is a **safety net** for repos created before that change, or repos left orphaned outside the stack. For a clean, current environment you can skip straight to Step 2.
+
+Delete all images in each repository. Use `delete-repository --force` rather than `batch-delete-image` — the latter caps at **100 image IDs per call** and silently leaves the rest behind, which is the classic cause of a later `DELETE_FAILED` on a repo that "looked" empty:
 
 ```bash
 # List all Canopy ECR repositories
-aws ecr describe-repositories --query "repositories[?contains(repositoryName, '${CANOPY_PROJECT_NAME}')].repositoryName" --output text
+aws ecr describe-repositories \
+  --query "repositories[?contains(repositoryName, '${CANOPY_PROJECT_NAME}')].repositoryName" \
+  --output text
 
-for repo in $(aws ecr describe-repositories --query "repositories[?contains(repositoryName, '${CANOPY_PROJECT_NAME}')].repositoryName" --output text); do
-  echo "Emptying ECR repository: $repo"
-  aws ecr batch-delete-image --repository-name $repo --image-ids $(aws ecr list-images --repository-name $repo --query 'imageIds[*]' --output json) 2>/dev/null || true
+# Force-delete each repo (removes the repo AND all images in one call, no 100-image cap).
+# No error suppression — if a delete fails, you WANT to see it before deleting stacks.
+for repo in $(aws ecr describe-repositories \
+    --query "repositories[?contains(repositoryName, '${CANOPY_PROJECT_NAME}')].repositoryName" \
+    --output text); do
+  echo "Force-deleting ECR repository: $repo"
+  aws ecr delete-repository --repository-name "$repo" --force
 done
+
+# Verify: empty output means every Canopy repo is gone
+aws ecr describe-repositories \
+  --query "repositories[?contains(repositoryName, '${CANOPY_PROJECT_NAME}')].repositoryName" \
+  --output text
 ```
+
+> **⚠️ `--force` is irreversible** — it drops all images in the repo. That's the intent for a teardown, but never run it against a repo you mean to keep.
 
 ### Step 2: Delete Stacks in Reverse Order
 
@@ -1849,6 +1878,42 @@ done
 
 echo "Cleanup complete!"
 ```
+
+> **Cross-stack export dependency:** if a `delete-stack` rolls back with `Cannot delete export <name> as it is in use by <other-stack>`, the stack publishes an export that another live stack imports via `Fn::ImportValue`. The importing stack must be deleted **first**. Find consumers with `aws cloudformation list-imports --export-name <name>`, delete them, then retry. (This is why `ECS-Keycloak` must be deleted before `ECS`.)
+
+### Step 2b: Recover from a DELETE_FAILED stack
+
+If a stack ends in `DELETE_FAILED`, the stack still exists and the status reason names the blocking resource. CloudFormation retries **only the failed resources** on the next `delete-stack`, so the fix is: clear the blocker, then re-issue the delete.
+
+**ECR repository still contains images** (`...cannot be deleted because it still contains images`):
+
+```bash
+# Force-empty the named repo, then retry the stack delete
+aws ecr delete-repository --repository-name <repo-name> --force
+aws cloudformation delete-stack --stack-name <stack-name>
+aws cloudformation wait stack-delete-complete --stack-name <stack-name>
+```
+
+**S3 bucket not empty** (`The bucket you tried to delete is not empty`):
+
+```bash
+aws s3 rm "s3://<bucket-name>" --recursive
+aws cloudformation delete-stack --stack-name <stack-name>
+```
+
+**RDS DB subnet group still in use** (`Cannot delete the subnet group ... because at least one database instance ... is still using it`): the DB instance outlived the subnet-group delete. Delete the instance, wait for it to fully drain, then retry the stack:
+
+```bash
+# Instance id is ${ProjectName}-postgresql-${Environment}, e.g. canopy-postgresql-dev
+aws rds delete-db-instance --db-instance-identifier <project>-postgresql-<env> \
+  --skip-final-snapshot --delete-automated-backups   # --skip-final-snapshot = NO backup kept
+aws rds wait db-instance-deleted --db-instance-identifier <project>-postgresql-<env>
+aws cloudformation delete-stack --stack-name <stack-name>
+```
+
+> The underlying cause was that `RDS.yaml` referenced the subnet group by literal name instead of `!Ref`, so CloudFormation didn't order the deletes. That has since been fixed (`DBSubnetGroupName: !Ref RDSDBSubnetGroup`), so freshly-deployed stacks tear down cleanly.
+
+As a last resort, `delete-stack --retain-resources <LogicalId>` removes the stack while leaving a stubborn resource in place for manual deletion — but prefer clearing the blocker so nothing is orphaned.
 
 ### Step 3: Verify Cleanup
 
