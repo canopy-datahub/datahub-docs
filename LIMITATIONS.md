@@ -41,10 +41,32 @@ The platform is **not cloud-neutral**. It does not support deployment to other c
 
 ## Data File Access Control Limitation
 
-Currently, all approved data files stored on the platform are **publicly accessible**. There is no per-user or per-study access control enforced at the file download level. Any user who can reach the platform can access any approved data file.
+Studies — and, by extension, their data files — carry an **access level** that governs who can see and download them. Each study is one of:
+
+| Access Level | Who can see the study and download its files |
+|---|---|
+| **PUBLIC** | Everyone, including anonymous (not-logged-in) visitors. This is the default for newly registered studies. |
+| **LIMITED** | Any authenticated (logged-in) user. |
+| **PRIVATE** | Only the study's creator, plus Data Curators and Application Administrators. |
+
+The access level is set during study registration and can be changed afterward by the **study creator, a Data Curator, or an Application Administrator** (the `study.access.update` capability). It is stored on `public.study.access_level` (`PUBLIC` / `LIMITED` / `PRIVATE`), defaulting to `PUBLIC`.
+
+### Where access level is enforced
+
+Access level **is** enforced at the points where data and metadata are actually served:
+
+- **Data file download** — every download endpoint (individual files, bundled/selected files, study documents) checks the parent study's access level before serving the file. Anonymous callers can retrieve files only from PUBLIC studies; LIMITED requires login; PRIVATE is restricted to the creator and override roles (Curator / Administrator).
+- **Study search and browse** — search results are filtered by access level: anonymous users see only PUBLIC studies; authenticated users additionally see LIMITED studies and their own studies; Curators and Administrators see everything.
+- **Study metadata reads** — study overview / dataset / document metadata endpoints apply the same read check as downloads.
+
+### Known gap: variable search is not access-filtered
+
+**Variable search does not currently filter by access level.** The variable search index does not yet carry the parent study's `access_level` / `creator_id`, so a variable from a LIMITED or PRIVATE study can still appear in variable-search results to any user. This is the principal remaining access-control gap.
+
+> ⚠️ **Note:** Variable search exposes variable-level metadata (variable names, descriptions, and their parent study), **not** the underlying data files. The data files themselves remain protected by the download-time check above. Still, operators handling sensitive studies should be aware that variable *metadata* for non-PUBLIC studies may be discoverable via variable search until this gap is closed.
 
 **Future Work**  
-The platform plans to implement access control for data files. Until this is in place, operators should exercise caution when storing sensitive or controlled-access data on the platform.
+The variable index will be extended to carry each variable's parent-study access level and creator, and variable search will apply the same access filter already used for study search. Until then, treat variable-search visibility as effectively public, and avoid relying on LIMITED/PRIVATE access levels to conceal the *existence* or naming of variables in sensitive studies.
 
 ---
 
@@ -241,18 +263,21 @@ INSERT INTO public.news (
 -- Optional: Add related links to the news article
 INSERT INTO public.news_link (
     news_id,
-    url,
-    text
+    link_label,
+    link_url,
+    display_order
 ) VALUES 
 (
     (SELECT id FROM public.news WHERE slug = 'data-hub-upgrade-2026'),
+    'Read Full Announcement',
     'https://example.org/upgrade-details',
-    'Read Full Announcement'
+    1
 ),
 (
     (SELECT id FROM public.news WHERE slug = 'data-hub-upgrade-2026'),
+    'View Updated User Guide',
     'https://example.org/user-guide',
-    'View Updated User Guide'
+    2
 );
 ```
 **API Endpoints:**
@@ -378,5 +403,5 @@ The **“Download Study Keys”** feature (Submitter Dashboard) allows users to 
 
 ---
 
-**Last Updated:** February 2026  
-**Version:** 1.1
+**Last Updated:** June 2026  
+**Version:** 1.2
