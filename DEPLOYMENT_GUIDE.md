@@ -213,7 +213,7 @@ cd ${CANOPY_HOME}
 ls -la
 ```
 
-✅ **Verify:** You should see 14 directories in `~/CANOPY`
+✅ **Verify:** You should see 13 directories in `~/CANOPY`
 
 ---
 
